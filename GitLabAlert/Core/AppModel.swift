@@ -225,6 +225,7 @@ final class AppModel {
                 await self.scheduler?.start()
             } catch {
                 guard revision == self.accountRevision else { return }
+                self.log.error("token verification failed: \(String(describing: error), privacy: .public)")
                 if let keychainError = error as? KeychainError {
                     self.isChangingAccount = false
                     self.authState = .rejected(

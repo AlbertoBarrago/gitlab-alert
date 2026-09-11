@@ -54,7 +54,7 @@ public struct GitLabClient: GitLabAPI {
 
     private func fetchProfile() async throws -> Profile {
         let user: UserPayload = try await get("user")
-        return Profile(login: user.username, name: user.name, avatarURL: user.avatarURL, url: user.webURL)
+        return Profile(login: user.username, name: user.name, avatarURL: user.avatarURL, url: user.webURL ?? baseURL)
     }
 
     private func fetchMergeRequests(query: [String: String]) async throws -> [MergeRequestItem] {
@@ -125,12 +125,15 @@ public struct GitLabClient: GitLabAPI {
             response = try await http.send(request)
         } catch let error as GitLabError {
             await rateLimits.note(error: error, now: clock())
+            logger.error("GitLab request failed path=\(path, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
             throw error
         } catch {
             let mapped = GitLabError.transport(error.localizedDescription)
             await rateLimits.note(error: mapped, now: clock())
+            logger.error("GitLab request failed path=\(path, privacy: .public) error=\(mapped.localizedDescription, privacy: .public)")
             throw mapped
         }
+        logger.info("GitLab request completed path=\(path, privacy: .public) status=\(response.status, privacy: .public)")
         await rateLimits.ingest(headers: RateLimitHeaders(response: response))
         guard response.isSuccess else {
             let error = classify(response)
@@ -178,9 +181,24 @@ private enum GitLabDate {
     }
 }
 
-private struct APIErrorPayload: Decodable { let message: String? }
+private struct APIErrorPayload: Decodable {
+    let message: String?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let value = try? container.decode(String.self, forKey: .message) {
+            message = value
+        } else if let values = try? container.decode([String].self, forKey: .message) {
+            message = values.joined(separator: ", ")
+        } else {
+            message = nil
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey { case message }
+}
 private struct UserPayload: Decodable {
-    let username: String; let name: String?; let avatarURL: URL?; let webURL: URL
+    let username: String; let name: String?; let avatarURL: URL?; let webURL: URL?
     enum CodingKeys: String, CodingKey { case username, name; case avatarURL = "avatar_url"; case webURL = "web_url" }
 }
 private struct ActorPayload: Decodable {
