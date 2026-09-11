@@ -9,8 +9,7 @@ import AppKit
 /// on every scale factor, and it needs no bundle lookup that could fail at
 /// runtime.
 ///
-/// A small cat mascot inspired by the Octocat: pointed ears, a curled tail,
-/// and a compact silhouette that remains legible at menu bar size.
+/// A compact alert bell, intentionally provider-neutral at menu-bar scale.
 enum MenuBarGlyph {
 
     /// Point size the menu bar wants. `NSStatusItem` gives roughly 22pt of
@@ -71,7 +70,7 @@ enum MenuBarGlyph {
     }
 
     /// Coordinates use an 18-point canvas; AppKit rasterizes it at the display's
-    /// scale. Transparent eyes keep the template correct on any background.
+    /// scale. The silhouette remains legible in both monochrome appearances.
     private static func draw(in rect: NSRect, color: NSColor = .black) {
         NSGraphicsContext.saveGraphicsState()
         defer { NSGraphicsContext.restoreGraphicsState() }
@@ -85,46 +84,16 @@ enum MenuBarGlyph {
         color.setFill()
         color.setStroke()
 
-        let tail = NSBezierPath()
-        tail.move(to: NSPoint(x: 8, y: 3.5))
-        tail.curve(to: NSPoint(x: 1.6, y: 6.2),
-                   controlPoint1: NSPoint(x: 3.4, y: 2),
-                   controlPoint2: NSPoint(x: 3.5, y: 6.5))
-        tail.lineWidth = 1.8
-        tail.lineCapStyle = .round
-        tail.stroke()
+        let bell = NSBezierPath()
+        bell.move(to: NSPoint(x: 3.1, y: 5.0))
+        bell.curve(to: NSPoint(x: 14.9, y: 5.0), controlPoint1: NSPoint(x: 3.3, y: 11.8), controlPoint2: NSPoint(x: 14.7, y: 11.8))
+        bell.line(to: NSPoint(x: 16.1, y: 4.0))
+        bell.curve(to: NSPoint(x: 1.9, y: 4.0), controlPoint1: NSPoint(x: 5.0, y: 2.7), controlPoint2: NSPoint(x: 13.0, y: 2.7))
+        bell.close()
+        bell.fill()
 
-        let body = NSBezierPath(roundedRect: NSRect(x: 7, y: 1.2, width: 5.4, height: 7),
-                                xRadius: 2, yRadius: 2)
-        body.fill()
-
-        let head = NSBezierPath()
-        head.move(to: NSPoint(x: 4, y: 12.5))
-        head.curve(to: NSPoint(x: 4.1, y: 16.4),
-                   controlPoint1: NSPoint(x: 3.5, y: 14.3),
-                   controlPoint2: NSPoint(x: 3.7, y: 15.5))
-        head.line(to: NSPoint(x: 7.2, y: 15))
-        head.curve(to: NSPoint(x: 12.4, y: 15),
-                   controlPoint1: NSPoint(x: 8.9, y: 15.5),
-                   controlPoint2: NSPoint(x: 10.7, y: 15.5))
-        head.line(to: NSPoint(x: 15.5, y: 16.4))
-        head.curve(to: NSPoint(x: 15.6, y: 12.5),
-                   controlPoint1: NSPoint(x: 15.9, y: 15.5),
-                   controlPoint2: NSPoint(x: 16.1, y: 14.3))
-        head.curve(to: NSPoint(x: 9.8, y: 6.3),
-                   controlPoint1: NSPoint(x: 17.6, y: 8.6),
-                   controlPoint2: NSPoint(x: 14, y: 6.3))
-        head.curve(to: NSPoint(x: 4, y: 12.5),
-                   controlPoint1: NSPoint(x: 5.6, y: 6.3),
-                   controlPoint2: NSPoint(x: 2, y: 8.6))
-        head.close()
-        head.fill()
-
-        NSGraphicsContext.current?.compositingOperation = .clear
-        for x in [6.8, 11.3] {
-            NSBezierPath(ovalIn: NSRect(x: x, y: 9.1, width: 1.5, height: 2.4)).fill()
-        }
-        NSBezierPath(roundedRect: NSRect(x: 9.3, y: 0.6, width: 0.9, height: 2.4),
-                     xRadius: 0.45, yRadius: 0.45).fill()
+        let rim = NSBezierPath(roundedRect: NSRect(x: 1.5, y: 3.1, width: 15, height: 1.7), xRadius: 0.8, yRadius: 0.8)
+        rim.fill()
+        NSBezierPath(ovalIn: NSRect(x: 7.1, y: 0.5, width: 3.8, height: 3.2)).fill()
     }
 }
