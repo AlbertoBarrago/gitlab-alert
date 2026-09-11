@@ -1,5 +1,6 @@
 import GitLabKit
 import SwiftUI
+import os
 
 /// One circular GitLab avatar, with a monogram standing in while it loads and
 /// whenever it cannot be loaded at all.
@@ -14,6 +15,7 @@ struct AvatarView: View {
     let avatarURL: URL?
     var size: CGFloat = 22
     @State private var imageData: Data?
+    private let logger = Logger(subsystem: "com.alBz.GitLabAlert", category: "avatar")
 
     var body: some View {
         content
@@ -50,6 +52,7 @@ struct AvatarView: View {
 
     private func loadAvatar() async {
         guard let url = Self.loadableURL(avatarURL) else {
+            logger.debug("avatar unavailable login=\(login, privacy: .public) hasURL=\(avatarURL != nil, privacy: .public)")
             imageData = nil
             return
         }
@@ -65,11 +68,15 @@ struct AvatarView: View {
             guard let http = response as? HTTPURLResponse,
                   (200..<300).contains(http.statusCode),
                   NSImage(data: data) != nil else {
+                let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+                logger.error("avatar request failed login=\(login, privacy: .public) status=\(status, privacy: .public)")
                 imageData = nil
                 return
             }
+            logger.debug("avatar loaded login=\(login, privacy: .public)")
             imageData = data
         } catch {
+            logger.error("avatar request error login=\(login, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
             imageData = nil
         }
     }
