@@ -16,7 +16,7 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 12) {
             header
 
-            Text("GitLab Alert keeps the merge requests waiting on you, your open issues, red CI and new stars in the menu bar. It polls GitLab in the background and tells you only when something actually changed.")
+            Text("GitLab Alert keeps the merge requests waiting on you, your open issues and failed pipelines in the menu bar. It polls GitLab in the background and tells you only when something actually changed.")
                 .font(.callout)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -51,8 +51,10 @@ struct OnboardingView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Image(systemName: "bell.badge.circle.fill")
-                .font(.system(size: 22))
+            Image(nsImage: MenuBarGlyph.templateImage())
+                .resizable()
+                .scaledToFit()
+                .frame(width: 28, height: 28)
                 .foregroundStyle(Color.accentColor)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 0) {
