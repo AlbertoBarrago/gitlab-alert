@@ -9,7 +9,7 @@ import AppKit
 /// on every scale factor, and it needs no bundle lookup that could fail at
 /// runtime.
 ///
-/// A compact alert bell, intentionally provider-neutral at menu-bar scale.
+/// A compact geometric tanuki mark inspired by GitLab's fox logo.
 enum MenuBarGlyph {
 
     /// Point size the menu bar wants. `NSStatusItem` gives roughly 22pt of
@@ -84,16 +84,23 @@ enum MenuBarGlyph {
         color.setFill()
         color.setStroke()
 
-        let bell = NSBezierPath()
-        bell.move(to: NSPoint(x: 3.1, y: 5.0))
-        bell.curve(to: NSPoint(x: 14.9, y: 5.0), controlPoint1: NSPoint(x: 3.3, y: 11.8), controlPoint2: NSPoint(x: 14.7, y: 11.8))
-        bell.line(to: NSPoint(x: 16.1, y: 4.0))
-        bell.curve(to: NSPoint(x: 1.9, y: 4.0), controlPoint1: NSPoint(x: 5.0, y: 2.7), controlPoint2: NSPoint(x: 13.0, y: 2.7))
-        bell.close()
-        bell.fill()
+        // Ears and forehead, kept as one strong silhouette so it remains
+        // recognizable at 18pt and works as an AppKit template image.
+        let mark = NSBezierPath()
+        mark.move(to: NSPoint(x: 2.2, y: 14.8))
+        mark.line(to: NSPoint(x: 5.3, y: 4.0))
+        mark.line(to: NSPoint(x: 8.0, y: 9.2))
+        mark.line(to: NSPoint(x: 9.0, y: 2.0))
+        mark.line(to: NSPoint(x: 10.0, y: 9.2))
+        mark.line(to: NSPoint(x: 12.7, y: 4.0))
+        mark.line(to: NSPoint(x: 15.8, y: 14.8))
+        mark.line(to: NSPoint(x: 9.0, y: 16.7))
+        mark.close()
+        mark.fill()
 
-        let rim = NSBezierPath(roundedRect: NSRect(x: 1.5, y: 3.1, width: 15, height: 1.7), xRadius: 0.8, yRadius: 0.8)
-        rim.fill()
-        NSBezierPath(ovalIn: NSRect(x: 7.1, y: 0.5, width: 3.8, height: 3.2)).fill()
+        // Small cut-outs suggest the two cheek planes of the tanuki mark.
+        NSGraphicsContext.current?.compositingOperation = .clear
+        NSBezierPath(ovalIn: NSRect(x: 5.7, y: 10.2, width: 1.7, height: 1.2)).fill()
+        NSBezierPath(ovalIn: NSRect(x: 10.6, y: 10.2, width: 1.7, height: 1.2)).fill()
     }
 }
