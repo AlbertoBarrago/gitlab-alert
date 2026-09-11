@@ -1,0 +1,33 @@
+# ---- macOS ----
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# ---- SwiftPM ----
+# Non c'è nessun .xcodeproj: l'app è assemblata da bin/make-app.sh a partire da
+# uno `swift build`. Vedi docs/adr/0005.
+.build/
+GitLabKit/.build/
+.swiftpm/
+# Package.resolved NON è ignorato di proposito: quando arriveranno dipendenze
+# SPM remote va committato, altrimenti le build non sono riproducibili.
+
+# ---- Firma locale ----
+# Il certificato self-signed stabile e la sua passphrase restano sulla macchina.
+# Perderli significa una nuova identità, quindi un re-inserimento del token e un
+# nuovo grant delle notifiche. Backup a parte, mai nel repo.
+bin/.signing/
+
+# ---- Output di build e release ----
+build/
+dist/
+*.dSYM
+*.dSYM.zip
+
+# ---- Residui Xcode (nel caso qualcuno apra il package in Xcode) ----
+*.xcuserstate
+*.xcuserdatad
+xcuserdata/
+DerivedData/

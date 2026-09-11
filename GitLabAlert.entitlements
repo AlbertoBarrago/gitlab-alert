@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- The token uses the user's login Keychain. Data Protection Keychain
+         access groups require an Apple provisioning profile, which local
+         source builds intentionally do not depend on. -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <!-- Chiamate uscenti verso l'API di GitLab -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+</dict>
+</plist>

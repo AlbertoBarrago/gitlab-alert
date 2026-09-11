@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Menu bar only, including while detail and settings windows are open. -->
+    <key>LSUIElement</key>
+    <true/>
+    <!-- Rendering nitido su display Retina -->
+    <key>NSHighResolutionCapable</key>
+    <true/>
+
+    <!-- Valori LETTERALI, non variabili di build.
+         Il bundle è assemblato da bin/make-app.sh, non da xcodebuild: nessuno
+         sostituirebbe $(EXECUTABLE_NAME) & co., e il risultato è un'app che
+         macOS rifiuta con "executable is missing". -->
+
+    <!-- Nome interno del bundle (Finder / cartella Applicazioni) -->
+    <key>CFBundleName</key>
+    <string>GitLabAlert</string>
+    <!-- Nome mostrato all'utente, con lo spazio -->
+    <key>CFBundleDisplayName</key>
+    <string>GitLab Alert</string>
+
+    <!-- IMMUTABILE. Ogni grant di notifica e ogni item nel Keychain è legato a
+         questo identificatore: cambiarlo li resetta tutti. Vedi docs/adr/0004. -->
+    <key>CFBundleIdentifier</key>
+    <string>com.alBz.GitLabAlert</string>
+
+    <!-- Deve combaciare con il nome del prodotto in Package.swift -->
+    <key>CFBundleExecutable</key>
+    <string>GitLabAlert</string>
+
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+
+    <!-- Versione utente e build number. make-release.sh legge
+         CFBundleShortVersionString per nominare lo zip in dist/. -->
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+
+    <!-- Allineato a platforms: [.macOS(.v14)] in Package.swift -->
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+
+    <key>CFBundleIconFile</key>
+    <string>GitLabAlert</string>
+
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.developer-tools</string>
+
+    <key>NSHumanReadableCopyright</key>
+    <string>GitLab Alert — released under the MIT license.</string>
+</dict>
+</plist>
