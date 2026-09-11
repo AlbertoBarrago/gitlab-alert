@@ -73,6 +73,14 @@ struct SettingsView: View {
                 break
             }
         }
+        .onChange(of: model.authState) { _, state in
+            // A token restored at launch is verified asynchronously. If that
+            // verification is rejected while Settings is already open, keep
+            // the repair path visible instead of leaving the user on General.
+            if case .rejected = state {
+                tab = .account
+            }
+        }
     }
 }
 
