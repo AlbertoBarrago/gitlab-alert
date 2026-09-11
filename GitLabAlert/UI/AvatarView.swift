@@ -59,7 +59,6 @@ struct AvatarView: View {
 
         var request = URLRequest(url: url)
         if let token = try? KeychainTokenStore().readToken(), !token.isEmpty {
-            request.setValue(token, forHTTPHeaderField: "PRIVATE-TOKEN")
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         request.setValue("image/*", forHTTPHeaderField: "Accept")
