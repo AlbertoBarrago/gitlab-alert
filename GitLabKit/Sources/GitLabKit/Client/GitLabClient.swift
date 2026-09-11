@@ -219,9 +219,9 @@ private struct IssuePayload: Decodable {
     var model: IssueItem { IssueItem(id: String(id), number: iid, title: title, repository: references.full.split(separator: "#").first.map(String.init) ?? "Unknown", author: author?.model, url: webURL, createdAt: createdAt, updatedAt: updatedAt, commentCount: userNotesCount, labels: labels) }
 }
 private struct ProjectPayload: Decodable {
-    let id: Int; let pathWithNamespace: String; let visibility: String; let openIssuesCount: Int; let defaultBranch: String?; let lastActivityAt: Date?; let webURL: URL
+    let id: Int; let pathWithNamespace: String; let visibility: String; let openIssuesCount: Int?; let defaultBranch: String?; let lastActivityAt: Date?; let webURL: URL
     enum CodingKeys: String, CodingKey { case id, visibility; case pathWithNamespace = "path_with_namespace"; case openIssuesCount = "open_issues_count"; case defaultBranch = "default_branch"; case lastActivityAt = "last_activity_at"; case webURL = "web_url" }
-    var model: RepoSnapshot? { RepoSnapshot(nameWithOwner: pathWithNamespace, isPrivate: visibility != "public", openIssueCount: openIssuesCount, defaultBranch: defaultBranch, pushedAt: lastActivityAt, url: webURL) }
+    var model: RepoSnapshot? { RepoSnapshot(nameWithOwner: pathWithNamespace, isPrivate: visibility != "public", openIssueCount: openIssuesCount ?? 0, defaultBranch: defaultBranch, pushedAt: lastActivityAt, url: webURL) }
     func snapshot(pipelineState: CheckState) -> RepoSnapshot {
         var snapshot = model!
         snapshot.checkState = pipelineState
