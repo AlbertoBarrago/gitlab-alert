@@ -13,6 +13,7 @@ struct AvatarView: View {
     let login: String
     let avatarURL: URL?
     var size: CGFloat = 22
+    @State private var imageData: Data?
 
     var body: some View {
         content
@@ -23,21 +24,17 @@ struct AvatarView: View {
                 Circle().strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5)
             )
             .accessibilityLabel(Text(login))
+            .task(id: avatarURL) {
+                await loadAvatar()
+            }
     }
 
     @ViewBuilder
     private var content: some View {
-        if let url = Self.loadableURL(avatarURL) {
-            AsyncImage(url: url) { phase in
-                if case .success(let image) = phase {
-                    image.resizable().aspectRatio(contentMode: .fill)
-                } else {
-                    // Covers .empty and .failure with the same thing: a face
-                    // that never arrives and a face still arriving should not
-                    // look different for the fraction of a second in between.
-                    monogram
-                }
-            }
+        if let imageData, let image = NSImage(data: imageData) {
+            Image(nsImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
         } else {
             monogram
         }
@@ -49,6 +46,32 @@ struct AvatarView: View {
     private static func loadableURL(_ url: URL?) -> URL? {
         guard let url, url.scheme?.lowercased() == "https" else { return nil }
         return url
+    }
+
+    private func loadAvatar() async {
+        guard let url = Self.loadableURL(avatarURL) else {
+            imageData = nil
+            return
+        }
+
+        var request = URLRequest(url: url)
+        if let token = try? KeychainTokenStore().readToken(), !token.isEmpty {
+            request.setValue(token, forHTTPHeaderField: "PRIVATE-TOKEN")
+        }
+        request.setValue("image/*", forHTTPHeaderField: "Accept")
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse,
+                  (200..<300).contains(http.statusCode),
+                  NSImage(data: data) != nil else {
+                imageData = nil
+                return
+            }
+            imageData = data
+        } catch {
+            imageData = nil
+        }
     }
 
     // MARK: - Monogram
