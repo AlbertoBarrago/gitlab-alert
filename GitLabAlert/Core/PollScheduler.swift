@@ -47,9 +47,6 @@ actor PollScheduler {
     /// has no business costing battery life.
     static let batteryInterval: TimeInterval = 900
 
-    /// How many recent stargazers/forkers to ask for per changed repository.
-    private static let attributionWindow = 10
-
     private let api: any GitLabAPI
     private let engine: any ActivityDiffing
     private let store: any StateStore
@@ -269,27 +266,12 @@ actor PollScheduler {
                 state = PersistedState()
             }
 
-            // Tier B only when a counter actually moved, and never on the
-            // baseline run — there is nothing to attribute yet.
-            var attribution: [String: RepoAttribution] = [:]
-            let changed = engine.changedRepositories(
-                watermarks: state.watermarks,
-                current: snapshot
-            )
-            if state.hasBaseline && !changed.isEmpty {
-                attribution = try await api.fetchAttribution(
-                    repositories: changed,
-                    limit: PollScheduler.attributionWindow
-                )
-            }
-
             guard revision == generation, !Task.isCancelled else { return }
             let result = engine.diff(
                 DiffInput(
                     previousSnapshot: state.lastSnapshot,
                     currentSnapshot: snapshot,
                     watermarks: state.watermarks,
-                    attribution: attribution,
                     mode: state.hasBaseline ? .compare : .baselineOnly,
                     now: now
                 )

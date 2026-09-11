@@ -50,10 +50,6 @@ public struct GitLabClient: GitLabAPI {
         )
     }
 
-    /// GitLab does not expose starrers through a general REST endpoint. The
-    /// dashboard retains project counters, but never fabricates attribution.
-    public func fetchAttribution(repositories: [String], limit: Int) async throws -> [String: RepoAttribution] { [:] }
-
     public func verifyToken() async throws -> Profile { try await fetchProfile() }
 
     private func fetchProfile() async throws -> Profile {
@@ -74,7 +70,23 @@ public struct GitLabClient: GitLabAPI {
     private func fetchProjects(scope: RepositoryScope) async throws -> [RepoSnapshot] {
         guard scope.includeOwned else { return [] }
         let payload: [ProjectPayload] = try await get("projects", query: ["membership": "true", "simple": "true", "order_by": "last_activity_at", "sort": "desc", "per_page": "100"])
-        return scope.filter(payload.compactMap(\.model), now: clock())
+        let projects = payload.filter { project in
+            guard let snapshot = project.model else { return false }
+            return !scope.filter([snapshot], now: clock()).isEmpty
+        }
+        return try await withThrowingTaskGroup(of: RepoSnapshot.self) { group in
+            for project in projects {
+                group.addTask { try await project.snapshot(pipelineState: self.fetchLatestPipeline(projectID: project.id)) }
+            }
+            var snapshots: [RepoSnapshot] = []
+            for try await snapshot in group { snapshots.append(snapshot) }
+            return snapshots.sorted { $0.nameWithOwner.localizedCaseInsensitiveCompare($1.nameWithOwner) == .orderedAscending }
+        }
+    }
+
+    private func fetchLatestPipeline(projectID: Int) async throws -> CheckState {
+        let pipelines: [PipelinePayload] = try await get("projects/\(projectID)/pipelines", query: ["per_page": "1", "order_by": "updated_at", "sort": "desc"])
+        return CheckState(gitLabPipelineStatus: pipelines.first?.status)
     }
 
     private func merge(_ items: [MergeRequestItem], relevance: MergeRequestRelevance) -> [MergeRequestItem] {
@@ -189,10 +201,17 @@ private struct IssuePayload: Decodable {
     var model: IssueItem { IssueItem(id: String(id), number: iid, title: title, repository: references.full.split(separator: "#").first.map(String.init) ?? "Unknown", author: author?.model, url: webURL, createdAt: createdAt, updatedAt: updatedAt, commentCount: userNotesCount, labels: labels) }
 }
 private struct ProjectPayload: Decodable {
-    let pathWithNamespace: String; let visibility: String; let forkedFromProject: Int?; let starCount: Int; let forksCount: Int; let openIssuesCount: Int; let defaultBranch: String?; let lastActivityAt: Date?; let webURL: URL
-    enum CodingKeys: String, CodingKey { case visibility; case pathWithNamespace = "path_with_namespace"; case forkedFromProject = "forked_from_project"; case starCount = "star_count"; case forksCount = "forks_count"; case openIssuesCount = "open_issues_count"; case defaultBranch = "default_branch"; case lastActivityAt = "last_activity_at"; case webURL = "web_url" }
-    var model: RepoSnapshot? { RepoSnapshot(nameWithOwner: pathWithNamespace, isPrivate: visibility != "public", isFork: forkedFromProject != nil, stargazerCount: starCount, forkCount: forksCount, openIssueCount: openIssuesCount, defaultBranch: defaultBranch, pushedAt: lastActivityAt, url: webURL) }
+    let id: Int; let pathWithNamespace: String; let visibility: String; let openIssuesCount: Int; let defaultBranch: String?; let lastActivityAt: Date?; let webURL: URL
+    enum CodingKeys: String, CodingKey { case id, visibility; case pathWithNamespace = "path_with_namespace"; case openIssuesCount = "open_issues_count"; case defaultBranch = "default_branch"; case lastActivityAt = "last_activity_at"; case webURL = "web_url" }
+    var model: RepoSnapshot? { RepoSnapshot(nameWithOwner: pathWithNamespace, isPrivate: visibility != "public", openIssueCount: openIssuesCount, defaultBranch: defaultBranch, pushedAt: lastActivityAt, url: webURL) }
+    func snapshot(pipelineState: CheckState) -> RepoSnapshot {
+        var snapshot = model!
+        snapshot.checkState = pipelineState
+        return snapshot
+    }
 }
+
+private struct PipelinePayload: Decodable { let status: String }
 
 private extension RateLimitTracker {
     func note(error: GitLabError, now: Date) {

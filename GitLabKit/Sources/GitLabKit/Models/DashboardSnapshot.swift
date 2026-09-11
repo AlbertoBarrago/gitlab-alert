@@ -42,6 +42,4 @@ public struct DashboardSnapshot: Sendable, Codable, Hashable {
         reviewRequested.count + assignedIssues.count + brokenRepositories.count
     }
 
-    public var totalStars: Int { repositories.reduce(0) { $0 + $1.stargazerCount } }
-    public var totalForks: Int { repositories.reduce(0) { $0 + $1.forkCount } }
 }

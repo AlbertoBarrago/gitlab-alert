@@ -10,6 +10,7 @@ public struct MergeRequestItem: Sendable, Codable, Hashable, Identifiable {
     public var repository: String
     public var author: GLActor?
     public var url: URL
+
     public var createdAt: Date
     public var updatedAt: Date
     public var isDraft: Bool
@@ -92,22 +93,23 @@ public struct IssueItem: Sendable, Codable, Hashable, Identifiable {
     }
 }
 
-/// Per-repository counters. Stars and forks are detected by diffing these
-/// between two snapshots, which is why they are cheap to watch.
+/// Project data rendered in the dashboard.
 public struct RepoSnapshot: Sendable, Codable, Hashable, Identifiable {
     /// `owner/name` doubles as the identity.
     public var nameWithOwner: String
     public var isPrivate: Bool
-    public var isFork: Bool
-    public var stargazerCount: Int
-    public var forkCount: Int
     public var openIssueCount: Int
-    public var openMergeRequestCount: Int
     public var defaultBranch: String?
     public var headOID: String?
     public var checkState: CheckState
     public var pushedAt: Date?
     public var url: URL
+    // Kept only for decoding snapshots from the first prototype. GitLabAlert
+    // no longer fills or renders these values.
+    public var isFork: Bool
+    public var stargazerCount: Int
+    public var forkCount: Int
+    public var openMergeRequestCount: Int
 
     public var id: String { nameWithOwner }
 

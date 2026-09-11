@@ -231,8 +231,6 @@ enum DetailLabels {
 
     static func name(for kind: ActivityKind) -> String {
         switch kind {
-        case .star: return "Star"
-        case .fork: return "Fork"
         case .checksFailed: return "Checks failed"
         case .checksRecovered: return "Checks recovered"
         case .reviewRequested: return "Review requested"
@@ -244,8 +242,6 @@ enum DetailLabels {
     /// All of these ship with macOS 14.
     static func symbol(for kind: ActivityKind) -> String {
         switch kind {
-        case .star: return "star.fill"
-        case .fork: return "tuningfork"
         case .checksFailed: return "xmark.octagon.fill"
         case .checksRecovered: return "checkmark.seal.fill"
         case .reviewRequested: return "eyeglasses"
@@ -651,10 +647,6 @@ extension DetailRow {
     /// What an event says when it carries no title of its own.
     private static func headline(for event: ActivityEvent) -> String {
         switch event.kind {
-        case .star:
-            return event.delta == 1 ? "New star" : "\(event.delta) new stars"
-        case .fork:
-            return event.delta == 1 ? "New fork" : "\(event.delta) new forks"
         case .checksFailed:
             return "Checks failed"
         case .checksRecovered:

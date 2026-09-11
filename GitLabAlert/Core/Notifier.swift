@@ -165,10 +165,6 @@ actor UserNotificationNotifier: Notifying {
     private func title(for event: ActivityEvent) -> String {
         let repo = shortName(event.repository)
         switch event.kind {
-        case .star:
-            return event.delta == 1 ? "New star on \(repo)" : "\(event.delta) new stars on \(repo)"
-        case .fork:
-            return event.delta == 1 ? "New fork of \(repo)" : "\(event.delta) new forks of \(repo)"
         case .checksFailed:
             return "CI failing on \(repo)"
         case .checksRecovered:
@@ -187,11 +183,6 @@ actor UserNotificationNotifier: Notifying {
         // saying "someone" is more honest than guessing.
         let names = event.actors.map(\.login)
         switch event.kind {
-        case .star, .fork:
-            if names.isEmpty { return event.repository }
-            if names.count == 1 { return "by \(names[0])" }
-            if names.count == 2 { return "by \(names[0]) and \(names[1])" }
-            return "by \(names[0]), \(names[1]) and \(names.count - 2) more"
         case .checksFailed, .checksRecovered:
             return event.repository
         case .reviewRequested, .inboundIssue, .inboundMergeRequest:

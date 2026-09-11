@@ -134,14 +134,10 @@ struct DetailSidebarView: View {
                     .foregroundStyle(.red)
                     .accessibilityHidden(true)
             }
-            Text("\(repo.stargazerCount)")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.tertiary)
-                .accessibilityHidden(true)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            "\(repo.nameWithOwner), \(repo.stargazerCount) stars, checks \(DetailLabels.name(for: repo.checkState))"
+            "\(repo.nameWithOwner), pipeline \(DetailLabels.name(for: repo.checkState))"
         )
     }
 

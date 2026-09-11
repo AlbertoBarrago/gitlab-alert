@@ -454,7 +454,6 @@ enum DetailPreviewFixtures {
     /// requires the collaborators.
     private struct PreviewAPI: GitLabAPI {
         func fetchDashboard(scope: RepositoryScope) async throws -> DashboardSnapshot { DetailPreviewFixtures.snapshot }
-        func fetchAttribution(repositories: [String], limit: Int) async throws -> [String: RepoAttribution] { [:] }
         func verifyToken() async throws -> Profile { DetailPreviewFixtures.profile }
     }
 

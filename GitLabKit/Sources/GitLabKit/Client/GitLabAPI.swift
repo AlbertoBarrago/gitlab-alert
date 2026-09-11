@@ -23,7 +23,6 @@ public struct RepositoryScope: Sendable, Codable, Hashable {
         repositories.filter { repository in
             guard !excluded.contains(repository.nameWithOwner) else { return false }
             guard pinned.contains(repository.nameWithOwner) || includePrivate || !repository.isPrivate else { return false }
-            guard includeForks || !repository.isFork else { return false }
             guard let days = activeWithinDays, !pinned.contains(repository.nameWithOwner) else { return true }
             return repository.pushedAt.map { $0 >= now.addingTimeInterval(-Double(days) * 86_400) } ?? false
         }
@@ -32,6 +31,5 @@ public struct RepositoryScope: Sendable, Codable, Hashable {
 
 public protocol GitLabAPI: Sendable {
     func fetchDashboard(scope: RepositoryScope) async throws -> DashboardSnapshot
-    func fetchAttribution(repositories: [String], limit: Int) async throws -> [String: RepoAttribution]
     func verifyToken() async throws -> Profile
 }

@@ -50,7 +50,6 @@ private actor ControlledAPI: GitLabAPI {
         verificationCalls += 1
         return try await withCheckedThrowingContinuation { verifications.append($0) }
     }
-    func fetchAttribution(repositories: [String], limit: Int) async throws -> [String: RepoAttribution] { [:] }
     func finishDashboard(_ snapshot: DashboardSnapshot) { dashboards.removeFirst().resume(returning: snapshot) }
     func finishVerification(_ result: Result<Profile, GitLabError>) {
         verifications.removeFirst().resume(with: result.mapError { $0 as any Error })

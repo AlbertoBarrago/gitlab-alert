@@ -46,6 +46,16 @@ public enum CheckState: String, Sendable, Codable, Hashable, CaseIterable {
         default: self = .unknown
         }
     }
+
+    public init(gitLabPipelineStatus raw: String?) {
+        switch raw?.lowercased() {
+        case "success": self = .success
+        case "failed": self = .failure
+        case "canceled": self = .error
+        case "created", "waiting_for_resource", "preparing", "pending", "running": self = .pending
+        default: self = .unknown
+        }
+    }
 }
 
 /// GraphQL `MergeRequestReviewDecision`, plus a case for "no decision yet".

@@ -117,26 +117,6 @@ struct ActivityRowView: View {
         let repo = Text(shortRepository).fontWeight(.semibold)
 
         switch event.kind {
-        case .star:
-            if event.delta > 1 {
-                return Text("\(event.delta)").fontWeight(.semibold)
-                    + Text(" new stars on ") + repo
-            }
-            if let actor = event.actors.first {
-                return Text(actor.login).fontWeight(.semibold) + Text(" starred ") + repo
-            }
-            return Text("New star on ") + repo
-
-        case .fork:
-            if event.delta > 1 {
-                return Text("\(event.delta)").fontWeight(.semibold)
-                    + Text(" new forks of ") + repo
-            }
-            if let actor = event.actors.first {
-                return Text(actor.login).fontWeight(.semibold) + Text(" forked ") + repo
-            }
-            return Text("New fork of ") + repo
-
         case .checksFailed:
             return Text("Checks failed on ") + repo
         case .checksRecovered:
@@ -170,14 +150,6 @@ struct ActivityRowView: View {
     /// once more as a plain string.
     private var spokenPhrase: String {
         switch event.kind {
-        case .star:
-            if event.delta > 1 { return "\(event.delta) new stars on \(shortRepository)" }
-            if let actor = event.actors.first { return "\(actor.login) starred \(shortRepository)" }
-            return "New star on \(shortRepository)"
-        case .fork:
-            if event.delta > 1 { return "\(event.delta) new forks of \(shortRepository)" }
-            if let actor = event.actors.first { return "\(actor.login) forked \(shortRepository)" }
-            return "New fork of \(shortRepository)"
         case .checksFailed:
             return "Checks failed on \(shortRepository)"
         case .checksRecovered:
@@ -197,8 +169,6 @@ private extension ActivityKind {
     /// All of these ship with macOS 14.
     var symbolName: String {
         switch self {
-        case .star: return "star.fill"
-        case .fork: return "arrow.triangle.branch"
         case .checksFailed: return "xmark"
         case .checksRecovered: return "checkmark"
         case .reviewRequested: return "eyeglasses"
@@ -209,8 +179,6 @@ private extension ActivityKind {
 
     var tint: Color {
         switch self {
-        case .star: return .yellow
-        case .fork: return .purple
         case .checksFailed: return .red
         case .checksRecovered: return .green
         case .reviewRequested: return .blue

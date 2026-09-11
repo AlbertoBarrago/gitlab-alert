@@ -178,10 +178,7 @@ enum SampleData {
     static let repositories: [RepoSnapshot] = [
         RepoSnapshot(
             nameWithOwner: "alBz/telemaco",
-            stargazerCount: 1_204,
-            forkCount: 73,
             openIssueCount: 12,
-            openMergeRequestCount: 3,
             defaultBranch: "main",
             headOID: "a1b2c3d",
             checkState: .failure,
@@ -190,10 +187,7 @@ enum SampleData {
         ),
         RepoSnapshot(
             nameWithOwner: "alBz/dockdock",
-            stargazerCount: 412,
-            forkCount: 18,
             openIssueCount: 4,
-            openMergeRequestCount: 2,
             defaultBranch: "main",
             checkState: .error,
             pushedAt: now.addingTimeInterval(-260_000),
@@ -201,8 +195,6 @@ enum SampleData {
         ),
         RepoSnapshot(
             nameWithOwner: "alBz/grapher",
-            stargazerCount: 96,
-            forkCount: 5,
             defaultBranch: "main",
             checkState: .success,
             pushedAt: now.addingTimeInterval(-90_000),
@@ -210,8 +202,6 @@ enum SampleData {
         ),
         RepoSnapshot(
             nameWithOwner: "alBz/notes",
-            stargazerCount: 8,
-            forkCount: 0,
             checkState: .unknown,
             pushedAt: now.addingTimeInterval(-700_000),
             url: url("https://gitlab.com/alBz/notes")
@@ -221,41 +211,6 @@ enum SampleData {
     // MARK: - Activity
 
     static let activity: [ActivityEvent] = [
-        // The interesting one: a burst of stars with the faces attached.
-        ActivityEvent(
-            id: "E_stars_burst",
-            kind: .star,
-            occurredAt: now.addingTimeInterval(-140),
-            repository: "alBz/telemaco",
-            delta: 3,
-            actors: Array(actors.prefix(3))
-        ),
-        // Counted but not yet attributed: no placeholder face may appear.
-        ActivityEvent(
-            id: "E_stars_pending",
-            kind: .star,
-            occurredAt: now.addingTimeInterval(-900),
-            repository: "alBz/dockdock",
-            delta: 2,
-            actors: []
-        ),
-        ActivityEvent(
-            id: "E_fork",
-            kind: .fork,
-            occurredAt: now.addingTimeInterval(-4_200),
-            repository: "alBz/telemaco",
-            delta: 1,
-            actors: [actors[3]]
-        ),
-        // Wide enough to exercise the "+N" chip.
-        ActivityEvent(
-            id: "E_stars_many",
-            kind: .star,
-            occurredAt: now.addingTimeInterval(-21_000),
-            repository: "alBz/grapher",
-            delta: 12,
-            actors: actors
-        ),
         ActivityEvent(
             id: "E_checks_failed",
             kind: .checksFailed,
@@ -400,6 +355,5 @@ private struct PreviewTokenStore: TokenStore {
 private struct PreviewGitLabAPI: GitLabAPI {
     let snapshot: DashboardSnapshot
     func fetchDashboard(scope: RepositoryScope) async throws -> DashboardSnapshot { snapshot }
-    func fetchAttribution(repositories: [String], limit: Int) async throws -> [String: RepoAttribution] { [:] }
     func verifyToken() async throws -> Profile { snapshot.profile }
 }

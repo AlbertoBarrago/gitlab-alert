@@ -22,16 +22,6 @@ import Testing
     #expect(request.header("PRIVATE-TOKEN") == "glpat-secret")
 }
 
-@Test func attributionIsDisabledWithoutMakingNetworkRequests() async throws {
-    let http = StubHTTPClient(responses: [])
-    let client = GitLabClient(httpClient: http, tokenStore: StaticTokenStore(token: "glpat-secret"))
-
-    let result = try await client.fetchAttribution(repositories: ["group/project"], limit: 10)
-
-    #expect(result.isEmpty)
-    #expect((await http.requests()).isEmpty)
-}
-
 private struct StaticTokenStore: TokenStore {
     let token: String
     func readToken() throws -> String? { token }
