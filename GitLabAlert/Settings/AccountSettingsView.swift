@@ -95,7 +95,7 @@ struct AccountSettingsView: View {
                 Button("Remove token", role: .destructive) { model.signOut() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("GitLab Alert will stop polling and forget the cached dashboard and activity log. The token itself is not revoked — do that on GitLab.")
+                Text("GitLab Alert will stop polling and forget the cached dashboard and activity log. The token itself is not revoked. Do that on GitLab.")
             }
         }
 
@@ -189,7 +189,7 @@ struct TokenScopeExplanation: View {
                 scopeRow("read_api", "your profile, merge requests, issues and projects")
             }
 
-            Text("No write scope is requested, ever. GitLab Alert only reads — it cannot change a repository, comment, or merge anything.")
+            Text("No write scope is requested, ever. GitLab Alert only reads. It cannot change a repository, comment, or merge anything.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -227,17 +227,17 @@ struct TokenScopeExplanation: View {
 }
 
 #if DEBUG
-#Preview("Account — signed in") {
+#Preview("Account signed in") {
     AccountSettingsView(model: SampleData.populatedModel)
         .frame(width: 560, height: 460)
 }
 
-#Preview("Account — no token") {
+#Preview("Account no token") {
     AccountSettingsView(model: SampleData.needsTokenModel)
         .frame(width: 560, height: 460)
 }
 
-#Preview("Account — rejected token") {
+#Preview("Account rejected token") {
     AccountSettingsView(model: SampleData.rejectedModel)
         .frame(width: 560, height: 460)
 }

@@ -187,7 +187,7 @@ actor UserNotificationNotifier: Notifying {
             return event.repository
         case .reviewRequested, .inboundIssue, .inboundMergeRequest:
             if let title = event.title {
-                return names.isEmpty ? title : "\(title) — \(names[0])"
+                return names.isEmpty ? title : "\(title) by \(names[0])"
             }
             return event.repository
         }

@@ -40,23 +40,11 @@ struct NotificationSettingsView: View {
                     statusRow
                     SettingsFootnote(
                         "macOS asks for permission the first time there is actually something to tell you, "
-                        + "not at launch — so a quiet first hour never produces a prompt."
+                        + "not at launch, so a quiet first hour never produces a prompt."
                     )
                     if model.notificationAuthorization == .granted {
                         Button("Open Notification Settings…") { model.openNotificationSettings() }
                     }
-                }
-
-                Section("Good to know") {
-                    SettingsFootnote(
-                        "GitLab never notifies about stars or forks, so those are detected by comparing "
-                        + "counters between polls. A repository is always baselined silently the first time "
-                        + "it is seen: adding one with 400 stars notifies nothing."
-                    )
-                    SettingsFootnote(
-                        "CI notifications only fire on a real transition between green and red. Checks that "
-                        + "are merely still running, or repositories with no checks at all, stay quiet."
-                    )
                 }
             }
         }

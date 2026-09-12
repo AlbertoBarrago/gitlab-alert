@@ -24,8 +24,8 @@ struct GeneralSettingsView: View {
                 SettingsFootnote(
                     "This is the idle cadence on AC power. The app polls every minute while the popover "
                     + "is open, backs off to 15 minutes on battery, and pauses while the Mac sleeps or the "
-                    + "network is gone. One cycle costs 1 of 5000 API points an hour, so the limit is not "
-                    + "the reason to go slow — battery is."
+                    + "network is gone. One cycle costs 1 of 5000 API points an hour, so battery is the "
+                    + "reason to go slow."
                 )
 
                 if let warning = model.rateLimitWarning {
@@ -37,7 +37,7 @@ struct GeneralSettingsView: View {
                 Toggle("Show the GitLab Alert icon in the menu bar", isOn: model.preferences.binding(\.statusItemVisible))
                 SettingsFootnote(
                     "With the icon hidden the app keeps polling and still posts notifications, but there "
-                    + "is no way left to open the popover — launching GitLab Alert again from Applications "
+                    + "is no way left to open the popover. Launching GitLab Alert again from Applications "
                     + "opens the main window instead."
                 )
             }
@@ -72,7 +72,7 @@ struct GeneralSettingsView: View {
                 .accessibilityLabel("Popover sections, in order")
                 .help("Drag a row to reorder the popover.")
 
-                SettingsFootnote("Drag to reorder. Hiding every section is allowed — the popover then shows only the header.")
+                SettingsFootnote("Drag to reorder. Hiding every section is allowed. The popover then shows only the header.")
             }
 
             Section("Startup") {
