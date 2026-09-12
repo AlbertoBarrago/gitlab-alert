@@ -48,6 +48,11 @@ fi
 echo "▶ Building ${BUNDLE_NAME} (debug)…"
 swift build -c debug
 
+if [ ! -f "${BUNDLE_NAME}.icns" ]; then
+    echo "❌ Missing application icon: ${BUNDLE_NAME}.icns"
+    exit 1
+fi
+
 mkdir -p "${MACOS}" "${RESOURCES}"
 
 if ! diff -q "Info.plist" "${CONTENTS}/Info.plist" &>/dev/null; then
@@ -55,10 +60,7 @@ if ! diff -q "Info.plist" "${CONTENTS}/Info.plist" &>/dev/null; then
 fi
 
 cp ".build/debug/${BUNDLE_NAME}" "${MACOS}/${BUNDLE_NAME}"
-
-if [ -f "${BUNDLE_NAME}.icns" ]; then
-    cp "${BUNDLE_NAME}.icns" "${RESOURCES}/${BUNDLE_NAME}.icns"
-fi
+cp "${BUNDLE_NAME}.icns" "${RESOURCES}/${BUNDLE_NAME}.icns"
 # Loose resources (the menu bar glyph), read back through Bundle.main.
 if [ -d "Resources" ]; then
     cp -R Resources/. "${RESOURCES}/"

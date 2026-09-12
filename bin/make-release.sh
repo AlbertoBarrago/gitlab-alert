@@ -51,6 +51,11 @@ sleep 0.3
 echo "▶ Building ${BUNDLE_NAME} (release)…"
 swift build -c release
 
+if [ ! -f "${BUNDLE_NAME}.icns" ]; then
+    echo "❌ Missing application icon: ${BUNDLE_NAME}.icns"
+    exit 1
+fi
+
 mkdir -p "${MACOS}" "${RESOURCES}"
 
 if ! diff -q "Info.plist" "${CONTENTS}/Info.plist" &>/dev/null; then
@@ -58,10 +63,7 @@ if ! diff -q "Info.plist" "${CONTENTS}/Info.plist" &>/dev/null; then
 fi
 
 cp ".build/release/${BUNDLE_NAME}" "${MACOS}/${BUNDLE_NAME}"
-
-if [ -f "${BUNDLE_NAME}.icns" ]; then
-    cp "${BUNDLE_NAME}.icns" "${RESOURCES}/${BUNDLE_NAME}.icns"
-fi
+cp "${BUNDLE_NAME}.icns" "${RESOURCES}/${BUNDLE_NAME}.icns"
 if [ -d "Resources" ]; then
     cp -R Resources/. "${RESOURCES}/"
 fi
