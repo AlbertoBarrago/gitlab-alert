@@ -65,8 +65,8 @@ struct RepositoryPickerView: View {
 
         var label: String {
             switch self {
-            case .pinned: return "Watching — pinned"
-            case .byRule: return "Watching — by rule"
+            case .pinned: return "Watching: pinned"
+            case .byRule: return "Watching: by rule"
             case .outsideRule: return "Not watching"
             case .excluded: return "Excluded"
             }
@@ -126,11 +126,6 @@ struct RepositoryPickerView: View {
             content
             Divider()
             footer
-        }
-        .task {
-            // The snapshot only ever contains repositories the scope already
-            // watches, so the picker asks for the unfiltered list once.
-            model.loadRepositoryCatalog()
         }
         .task(id: query) {
             guard debouncedQuery != query else { return }
@@ -304,25 +299,27 @@ struct RepositoryPickerView: View {
                         ruleEditor
                     }
 
-                Button {
-                    model.loadRepositoryCatalog(force: true)
-                } label: {
-                    Image(systemName: "arrow.clockwise")
+                if model.repositoryCatalog.isEmpty {
+                    Button("Load all repositories") {
+                        model.loadRepositoryCatalog()
+                    }
+                    .disabled(model.isLoadingRepositoryCatalog || !model.authState.isReady)
+                } else {
+                    Button {
+                        model.loadRepositoryCatalog(force: true)
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .disabled(model.isLoadingRepositoryCatalog || !model.authState.isReady)
+                    .help("Reload the repository list from GitLab.")
+                    .accessibilityLabel("Reload the repository list")
                 }
-                .disabled(model.isLoadingRepositoryCatalog || !model.authState.isReady)
-                .help("Reload the repository list from GitLab.")
-                .accessibilityLabel("Reload the repository list")
             }
 
             Text(ruleSentence)
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-
-            SettingsFootnote(
-                "Changing what is watched re-seeds the baseline, so repositories that join the list are "
-                + "recorded silently — you are never notified about stars and forks they already had."
-            )
 
             if pinnedCount > Self.pinWarningThreshold {
                 SettingsAdvisory(
@@ -379,12 +376,6 @@ struct RepositoryPickerView: View {
                     Text("1 year").tag(Optional(365))
                     Text("Any time").tag(Optional<Int>.none)
                 }
-            }
-            Section {
-                SettingsFootnote(
-                    "Pinned and excluded repositories always win over this rule. Widening it costs more "
-                    + "per poll: more repositories to page through and to diff."
-                )
             }
         }
         .formStyle(.grouped)

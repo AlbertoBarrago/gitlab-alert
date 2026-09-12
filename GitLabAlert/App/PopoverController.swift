@@ -5,11 +5,12 @@ import SwiftUI
 /// stop using `MenuBarExtra`: activation, Escape, animated resizing, and a
 /// placement fallback for when the status item's window frame is not usable yet.
 @MainActor
-final class PopoverController {
+final class PopoverController: NSObject, NSPopoverDelegate {
 
     private let popover = NSPopover()
     private var escapeMonitor: Any?
     private weak var anchor: NSView?
+    private var detachedAnchorWindow: NSWindow?
 
     var onOpen: (() -> Void)?
     var onClose: (() -> Void)?
@@ -22,11 +23,13 @@ final class PopoverController {
     private var maximumHeight: CGFloat = 600
 
     init<Content: View>(content: Content) {
+        super.init()
         popover.contentSize = NSSize(width: Self.contentWidth, height: Self.initialHeight)
         // `.transient` and never `.semitransient`: the latter's "containing
         // window" is the menu bar, so it would never close on an outside click.
         popover.behavior = .transient
         popover.animates = true
+        popover.delegate = self
         popover.contentViewController = NSHostingController(rootView: content)
     }
 
@@ -42,6 +45,7 @@ final class PopoverController {
 
     func show(relativeTo view: NSView?) {
         anchor = view
+        detachedAnchorWindow = nil
         updateMaximumHeight(relativeTo: view)
 
         // An accessory app is not frontmost, so without this a search field or
@@ -60,9 +64,8 @@ final class PopoverController {
     }
 
     func close() {
+        guard popover.isShown else { return }
         popover.performClose(nil)
-        removeEscapeMonitor()
-        onClose?()
     }
 
     /// Animates a height change so an expanding section grows the panel instead
@@ -120,7 +123,17 @@ final class PopoverController {
         let anchorView = NSView(frame: NSRect(origin: .zero, size: rect.size))
         host.contentView = anchorView
         host.orderFront(nil)
+        detachedAnchorWindow = host
         popover.show(relativeTo: anchorView.bounds, of: anchorView, preferredEdge: .minY)
+    }
+
+    // MARK: - NSPopoverDelegate
+
+    func popoverDidClose(_ notification: Notification) {
+        removeEscapeMonitor()
+        detachedAnchorWindow?.orderOut(nil)
+        detachedAnchorWindow = nil
+        onClose?()
     }
 
     // MARK: - Escape
