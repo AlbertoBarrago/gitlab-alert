@@ -1,44 +1,141 @@
 # GitLab Alert
 
-GitLab Alert is a macOS menu bar app for GitLab.com and self-managed GitLab
-instances. It shows merge requests awaiting review, authored merge requests,
-assigned issues, and recently active projects without keeping a browser tab open.
+A macOS menu bar app that keeps the GitLab work needing your attention in the
+corner of your screen, instead of in a browser tab. It lives in the menu bar
+only, with no Dock icon, and shows you:
 
-## Current scope
+- **Merge requests awaiting you**: review requests and merge requests you authored
+- **Open issues**: issues assigned to you
+- **Pipeline state**: the latest pipeline of the GitLab projects you watch
+- **Repository activity**: your projects, including star and fork counts when GitLab provides them
 
-The first usable slice uses GitLab REST API v4 and supports:
+GitLab Alert works with GitLab.com and self-managed GitLab instances. It polls
+in the background, retains the last successful dashboard while offline, and
+only notifies you when tracked work or pipeline state changes.
 
-- a configurable HTTPS GitLab instance origin;
-- personal access tokens stored in the macOS Keychain;
-- profile verification;
-- open merge requests where you are reviewer or author;
-- open issues assigned to you;
-- projects where you are a member.
+**Status:** under active development. It is a build-from-source tool, not a
+notarized or packaged application.
 
-Project star and fork counters are displayed when GitLab returns them. GitLab's
-REST API does not expose reliable starrer attribution, so the app deliberately
-does not claim to notify who starred a project. Pipeline health is not yet part
-of the dashboard.
+<!-- TODO: screenshots once the popover UI settles -->
+
+## Requirements
+
+- macOS 14 (Sonoma) or later
+- A Swift 6 toolchain (`swift --version` should report 6.0+)
+
+There is no `.xcodeproj` and Xcode is not required. The project uses SwiftPM
+and shell scripts. You do need the macOS command line tools, which provide
+`swift` and `codesign`.
+
+## Build and run
+
+```sh
+bash bin/make-signing-cert.sh   # once, ever
+bash bin/make-app.sh            # build + install to /Applications
+bash bin/run-with-logs.sh       # rebuild, relaunch, stream the logs
+```
+
+`bin/make-app.sh` runs `swift build`, assembles `/Applications/GitLabAlert.app`
+around the binary, copies `Info.plist` and the resources, signs it, then verifies
+the signature before it can launch.
+
+### Why the certificate step
+
+macOS pins **Keychain item ACLs** and **notification authorization** to the
+app's code-signing designated requirement. Ad-hoc signing (`codesign --sign -`)
+has no certificate, so that requirement falls back to the binary's cdhash,
+which changes on every build. The app then stops recognising the token it stored
+itself, and the notification grant resets.
+
+`bin/make-signing-cert.sh` generates a self-signed code-signing certificate once
+and imports it into your login keychain. It costs nothing, needs no Apple
+account, and keeps the requirement stable across rebuilds. Keep
+`bin/.signing/` backed up. Losing it means a new identity, so you will need to
+paste the token and grant notifications once more.
+
+The build scripts select an identity in this order: this project's certificate,
+then an Apple Development certificate that actually verifies, then ad-hoc with a
+loud warning. `security find-identity -v` can report revoked certificates as
+valid from a stale OCSP cache, so the scripts validate candidates by signing a
+scratch binary and running `codesign --verify --strict`.
+
+The app is **not notarized**, which requires a paid Developer ID. On another
+Mac, first launch needs right-click, then **Open**. Building from source avoids
+that step.
 
 ## Configuration
 
-In Settings, enter the origin of your GitLab instance, for example
+GitLab Alert authenticates with a personal access token. In Settings, enter the
+origin of GitLab.com or of your self-managed instance, for example
 `https://gitlab.com` or `https://gitlab.example.com`, then restart the app.
-Create a personal access token with the `read_api` scope and paste it into the
-account pane. The token is stored only in the Keychain.
 
-GitLab installations hosted below a URL sub-path are not supported yet.
+Create a token at the configured instance's
+`/-/user_settings/personal_access_tokens` page and grant only this scope:
 
-## Build and test
+| Scope | Why |
+| --- | --- |
+| `read_api` | profile, merge requests, issues, projects and pipeline status |
+
+No write scope is needed or requested. The token is stored in the macOS
+Keychain for that Mac only, is never written to disk in plaintext, never shown
+again after saving, and is sent only to the configured GitLab instance.
+
+The default repository scope includes projects you are a member of that were
+active in the past 90 days, excluding forks. The Repositories pane lets you
+search the catalogue and explicitly include or exclude individual projects.
+
+GitLab instances hosted below a URL sub-path are not supported yet.
+
+## How it works
+
+Each refresh fetches your profile, open merge requests where you are a reviewer
+or author, issues assigned to you, and the member projects in scope. The latest
+pipeline is then fetched for each watched project. Independent dashboard
+requests run concurrently.
+
+The app stores credentials in the Keychain, preferences in `UserDefaults`, and
+the last dashboard plus notification watermarks in Application Support. The
+first successful refresh seeds those watermarks silently, so a new installation
+does not notify you about pre-existing work or failed pipelines.
+
+The implementation uses GitLab REST API v4. The full design is in
+[`docs/architecture.md`](docs/architecture.md).
+
+## Tests
+
+The REST client, models, persistence, polling support and diffing live in
+`GitLabKit/`, a local SwiftPM package with no UI dependency:
 
 ```sh
-bash bin/make-signing-cert.sh
-bash bin/make-app.sh
-
-swift test --package-path GitLabKit
-swift test
+bash bin/test.sh          # GitLabKit + app lifecycle regression tests
 ```
 
-The app requires macOS 14 and Swift 6. `GitLabKit` contains the REST client,
-models, polling support, persistence and diffing. `GitLabAlert` contains the
-AppKit shell and SwiftUI surfaces.
+The test suites cover API mapping, Keychain error handling through test stores,
+concurrent refreshes, cancellation, account replacement, notification routing,
+and persisted read state. The menu bar UI still needs manual verification; see
+[`docs/manual-qa.md`](docs/manual-qa.md).
+
+## Layout
+
+```
+GitLabAlert/         app sources: AppKit shell, SwiftUI views, settings
+GitLabKit/           local SwiftPM package: REST client and testable logic
+bin/                 build, run, release and signing scripts
+docs/                architecture and manual QA checklist
+Info.plist           copied into the bundle by the build script
+Resources/           loose resources, read through Bundle.main
+```
+
+## Release
+
+```sh
+bash bin/make-release.sh
+```
+
+This runs the tests, builds Release, assembles and signs the bundle, then writes
+`dist/GitLabAlert-<version>.zip`. It refuses to create a release with an ad-hoc
+signature.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
