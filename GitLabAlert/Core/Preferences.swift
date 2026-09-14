@@ -64,6 +64,10 @@ public final class Preferences {
     /// preference for every existing user.
     private enum Key {
         static let basePollInterval = "poll.baseInterval"
+        static let activePollInterval = "poll.activeInterval"
+        static let batteryPollInterval = "poll.batteryInterval"
+        static let apiPageSize = "api.pageSize"
+        static let pipelineConcurrency = "api.pipelineConcurrency"
         static let showProfileHeader = "ui.showProfileHeader"
         static let sectionOrder = "ui.sectionOrder"
         static let visibleSections = "ui.visibleSections"
@@ -81,6 +85,10 @@ public final class Preferences {
     // getter reads the tracked storage, so Observation still sees the
     // dependency, while the setter keeps clamping and encoding in one place.
     private var storedBasePollInterval: TimeInterval
+    private var storedActivePollInterval: TimeInterval
+    private var storedBatteryPollInterval: TimeInterval
+    private var storedAPIPageSize: Int
+    private var storedPipelineConcurrency: Int
     private var storedShowProfileHeader: Bool
     private var storedSectionOrder: [DashboardSection]
     private var storedVisibleSections: Set<DashboardSection>
@@ -95,6 +103,18 @@ public final class Preferences {
 
         let rawInterval = defaults.object(forKey: Key.basePollInterval) as? Double
         storedBasePollInterval = Preferences.clampPollInterval(rawInterval ?? PollScheduler.defaultIdleInterval)
+        storedActivePollInterval = Preferences.clampPollInterval(
+            defaults.object(forKey: Key.activePollInterval) as? Double ?? PollScheduler.defaultActiveInterval
+        )
+        storedBatteryPollInterval = Preferences.clampPollInterval(
+            defaults.object(forKey: Key.batteryPollInterval) as? Double ?? PollScheduler.defaultBatteryInterval
+        )
+        storedAPIPageSize = Preferences.clampAPIPageSize(
+            defaults.object(forKey: Key.apiPageSize) as? Int ?? DashboardRequestOptions.defaultPageSize
+        )
+        storedPipelineConcurrency = Preferences.clampPipelineConcurrency(
+            defaults.object(forKey: Key.pipelineConcurrency) as? Int ?? DashboardRequestOptions.defaultPipelineConcurrency
+        )
         storedShowProfileHeader = defaults.object(forKey: Key.showProfileHeader) as? Bool ?? true
         storedStatusItemVisible = defaults.object(forKey: Key.statusItemVisible) as? Bool ?? true
         storedLaunchAtLogin = defaults.object(forKey: Key.launchAtLogin) as? Bool ?? false
@@ -154,6 +174,58 @@ public final class Preferences {
     public static func clampPollInterval(_ value: TimeInterval) -> TimeInterval {
         guard value.isFinite else { return PollScheduler.defaultIdleInterval }
         return min(max(value, PollScheduler.minimumInterval), PollScheduler.maximumInterval)
+    }
+
+    /// How often an open popover is refreshed. This cannot be more aggressive
+    /// than the global safety floor enforced by `clampPollInterval`.
+    public var activePollInterval: TimeInterval {
+        get { storedActivePollInterval }
+        set {
+            let clamped = Preferences.clampPollInterval(newValue)
+            storedActivePollInterval = clamped
+            defaults.set(clamped, forKey: Key.activePollInterval)
+        }
+    }
+
+    /// Desired cadence while on battery or in Low Power Mode. The scheduler
+    /// also compares it with the idle interval and chooses the slower value.
+    public var batteryPollInterval: TimeInterval {
+        get { storedBatteryPollInterval }
+        set {
+            let clamped = Preferences.clampPollInterval(newValue)
+            storedBatteryPollInterval = clamped
+            defaults.set(clamped, forKey: Key.batteryPollInterval)
+        }
+    }
+
+    public var apiPageSize: Int {
+        get { storedAPIPageSize }
+        set {
+            let clamped = Preferences.clampAPIPageSize(newValue)
+            storedAPIPageSize = clamped
+            defaults.set(clamped, forKey: Key.apiPageSize)
+        }
+    }
+
+    public var pipelineConcurrency: Int {
+        get { storedPipelineConcurrency }
+        set {
+            let clamped = Preferences.clampPipelineConcurrency(newValue)
+            storedPipelineConcurrency = clamped
+            defaults.set(clamped, forKey: Key.pipelineConcurrency)
+        }
+    }
+
+    public var dashboardRequestOptions: DashboardRequestOptions {
+        DashboardRequestOptions(pageSize: apiPageSize, pipelineConcurrency: pipelineConcurrency)
+    }
+
+    public static func clampAPIPageSize(_ value: Int) -> Int {
+        [25, 50, 100].contains(value) ? value : DashboardRequestOptions.defaultPageSize
+    }
+
+    public static func clampPipelineConcurrency(_ value: Int) -> Int {
+        min(max(value, 1), 8)
     }
 
     // MARK: - Layout
@@ -307,6 +379,10 @@ public final class Preferences {
     /// and nowhere else — it does not touch the token or the cached snapshot.
     public func resetToDefaults() {
         basePollInterval = PollScheduler.defaultIdleInterval
+        activePollInterval = PollScheduler.defaultActiveInterval
+        batteryPollInterval = PollScheduler.defaultBatteryInterval
+        apiPageSize = DashboardRequestOptions.defaultPageSize
+        pipelineConcurrency = DashboardRequestOptions.defaultPipelineConcurrency
         showProfileHeader = true
         statusItemVisible = true
         launchAtLogin = false

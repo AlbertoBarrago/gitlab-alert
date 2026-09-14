@@ -26,12 +26,15 @@ public struct GitLabClient: GitLabAPI {
         self.clock = clock
     }
 
-    public func fetchDashboard(scope: RepositoryScope) async throws -> DashboardSnapshot {
+    public func fetchDashboard(
+        scope: RepositoryScope,
+        options: DashboardRequestOptions
+    ) async throws -> DashboardSnapshot {
         async let profile = fetchProfile()
-        async let reviewRequested = fetchMergeRequests(query: ["reviewer_username": "me"])
-        async let authored = fetchMergeRequests(query: ["author_username": "me"])
-        async let assignedIssues = fetchIssues(query: ["assignee_username": "me"])
-        async let projects = fetchProjects(scope: scope)
+        async let reviewRequested = fetchMergeRequests(query: ["reviewer_username": "me"], pageSize: options.pageSize)
+        async let authored = fetchMergeRequests(query: ["author_username": "me"], pageSize: options.pageSize)
+        async let assignedIssues = fetchIssues(query: ["assignee_username": "me"], pageSize: options.pageSize)
+        async let projects = fetchProjects(scope: scope, options: options)
 
         let resolvedProfile = try await profile
         let review = try await reviewRequested
@@ -57,29 +60,48 @@ public struct GitLabClient: GitLabAPI {
         return Profile(login: user.username, name: user.name, avatarURL: user.avatarURL, url: user.webURL ?? baseURL)
     }
 
-    private func fetchMergeRequests(query: [String: String]) async throws -> [MergeRequestItem] {
-        let payload: [MergeRequestPayload] = try await get("merge_requests", query: query.merging(["state": "opened", "scope": "all", "per_page": "100"], uniquingKeysWith: { current, _ in current }))
+    private func fetchMergeRequests(query: [String: String], pageSize: Int) async throws -> [MergeRequestItem] {
+        let payload: [MergeRequestPayload] = try await getAllPages(
+            "merge_requests",
+            query: query.merging(["state": "opened", "scope": "all"], uniquingKeysWith: { current, _ in current }),
+            pageSize: pageSize
+        )
         return payload.map(\.model)
     }
 
-    private func fetchIssues(query: [String: String]) async throws -> [IssueItem] {
-        let payload: [IssuePayload] = try await get("issues", query: query.merging(["state": "opened", "scope": "all", "per_page": "100"], uniquingKeysWith: { current, _ in current }))
+    private func fetchIssues(query: [String: String], pageSize: Int) async throws -> [IssueItem] {
+        let payload: [IssuePayload] = try await getAllPages(
+            "issues",
+            query: query.merging(["state": "opened", "scope": "all"], uniquingKeysWith: { current, _ in current }),
+            pageSize: pageSize
+        )
         return payload.map(\.model)
     }
 
-    private func fetchProjects(scope: RepositoryScope) async throws -> [RepoSnapshot] {
+    private func fetchProjects(scope: RepositoryScope, options: DashboardRequestOptions) async throws -> [RepoSnapshot] {
         guard scope.includeOwned else { return [] }
-        let payload: [ProjectPayload] = try await get("projects", query: ["membership": "true", "simple": "true", "order_by": "last_activity_at", "sort": "desc", "per_page": "100"])
+        let payload: [ProjectPayload] = try await getAllPages(
+            "projects",
+            query: ["membership": "true", "simple": "true", "order_by": "last_activity_at", "sort": "desc"],
+            pageSize: options.pageSize
+        )
         let projects = payload.filter { project in
             guard let snapshot = project.model else { return false }
             return !scope.filter([snapshot], now: clock()).isEmpty
         }
         return try await withThrowingTaskGroup(of: RepoSnapshot.self) { group in
-            for project in projects {
+            var iterator = projects.makeIterator()
+            for _ in 0..<min(options.pipelineConcurrency, projects.count) {
+                guard let project = iterator.next() else { break }
                 group.addTask { try await project.snapshot(pipelineState: self.fetchLatestPipeline(projectID: project.id)) }
             }
             var snapshots: [RepoSnapshot] = []
-            for try await snapshot in group { snapshots.append(snapshot) }
+            while let snapshot = try await group.next() {
+                snapshots.append(snapshot)
+                if let project = iterator.next() {
+                    group.addTask { try await project.snapshot(pipelineState: self.fetchLatestPipeline(projectID: project.id)) }
+                }
+            }
             return snapshots.sorted { $0.nameWithOwner.localizedCaseInsensitiveCompare($1.nameWithOwner) == .orderedAscending }
         }
     }
@@ -98,6 +120,43 @@ public struct GitLabClient: GitLabAPI {
     }
 
     private func get<Payload: Decodable>(_ path: String, query: [String: String] = [:]) async throws -> Payload {
+        let response = try await request(path, query: query)
+        do {
+            return try JSONDecoder.gitLab.decode(Payload.self, from: response.body)
+        } catch {
+            logger.error("Could not decode GitLab response: \(error.localizedDescription, privacy: .public)")
+            throw GitLabError.decoding(error.localizedDescription)
+        }
+    }
+
+    private func getAllPages<Payload: Decodable>(
+        _ path: String,
+        query: [String: String],
+        pageSize: Int
+    ) async throws -> [Payload] {
+        var page = 1
+        var results: [Payload] = []
+
+        while true {
+            var pageQuery = query
+            pageQuery["per_page"] = String(pageSize)
+            pageQuery["page"] = String(page)
+            let response = try await request(path, query: pageQuery)
+            do {
+                results += try JSONDecoder.gitLab.decode([Payload].self, from: response.body)
+            } catch {
+                logger.error("Could not decode GitLab response: \(error.localizedDescription, privacy: .public)")
+                throw GitLabError.decoding(error.localizedDescription)
+            }
+
+            guard let next = response.header("x-next-page"), let nextPage = Int(next), nextPage > page else {
+                return results
+            }
+            page = nextPage
+        }
+    }
+
+    private func request(_ path: String, query: [String: String] = [:]) async throws -> HTTPResponse {
         let token: String
         do {
             guard let stored = try tokenStore.readToken(), !stored.isEmpty else { throw GitLabError.notAuthenticated }
@@ -122,11 +181,14 @@ public struct GitLabClient: GitLabAPI {
 
         let response: HTTPResponse
         do {
+            try await waitForRateLimit()
             response = try await http.send(request)
         } catch let error as GitLabError {
             await rateLimits.note(error: error, now: clock())
             logger.error("GitLab request failed path=\(path, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
             throw error
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             let mapped = GitLabError.transport(error.localizedDescription)
             await rateLimits.note(error: mapped, now: clock())
@@ -141,11 +203,15 @@ public struct GitLabClient: GitLabAPI {
             throw error
         }
         await rateLimits.noteSuccess(now: clock())
-        do {
-            return try JSONDecoder.gitLab.decode(Payload.self, from: response.body)
-        } catch {
-            logger.error("Could not decode GitLab response: \(error.localizedDescription, privacy: .public)")
-            throw GitLabError.decoding(error.localizedDescription)
+        return response
+    }
+
+    private func waitForRateLimit() async throws {
+        while let allowedAt = await rateLimits.nextAllowedRequest(now: clock()) {
+            let delay = allowedAt.timeIntervalSince(clock())
+            guard delay > 0 else { return }
+            try Task.checkCancellation()
+            try await Task.sleep(for: .seconds(delay))
         }
     }
 

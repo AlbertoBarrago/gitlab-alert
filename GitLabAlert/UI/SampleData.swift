@@ -354,6 +354,6 @@ private struct PreviewTokenStore: TokenStore {
 
 private struct PreviewGitLabAPI: GitLabAPI {
     let snapshot: DashboardSnapshot
-    func fetchDashboard(scope: RepositoryScope) async throws -> DashboardSnapshot { snapshot }
+    func fetchDashboard(scope: RepositoryScope, options: DashboardRequestOptions) async throws -> DashboardSnapshot { snapshot }
     func verifyToken() async throws -> Profile { snapshot.profile }
 }

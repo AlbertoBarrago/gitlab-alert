@@ -13,9 +13,12 @@ the persisted GitLab origin.
 
 The current dashboard poll requests `/user`, open merge requests for the current
 reviewer and author, assigned open issues, and member projects. These requests
-are independent and run concurrently. The API client authenticates using the
-`PRIVATE-TOKEN` header and maps transport, authentication, authorization and
-HTTP failures to `GitLabError`.
+are independent and run concurrently. Every list endpoint follows GitLab REST
+pagination; project pipeline checks use a bounded task group. The user can tune
+page size and the pipeline concurrency, within safe limits, in Settings. The
+client waits for a `Retry-After` or exhausted rate-limit floor before starting
+another request. It authenticates using the `PRIVATE-TOKEN` header and maps
+transport, authentication, authorization and HTTP failures to `GitLabError`.
 
 Credentials live in the Keychain. Preferences live in `UserDefaults`. Cached
 dashboard state and activity watermarks are atomically persisted in Application

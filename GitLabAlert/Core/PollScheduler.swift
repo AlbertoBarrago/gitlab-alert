@@ -42,10 +42,10 @@ actor PollScheduler {
     /// Idle on AC power: the default the app ships with.
     static let defaultIdleInterval: TimeInterval = 300
     /// While the popover is open, or right after an explicit refresh.
-    static let activeInterval: TimeInterval = 60
+    static let defaultActiveInterval: TimeInterval = 60
     /// On battery or in Low Power Mode. Deliberately lazy: a menu bar utility
     /// has no business costing battery life.
-    static let batteryInterval: TimeInterval = 900
+    static let defaultBatteryInterval: TimeInterval = 900
 
     private let api: any GitLabAPI
     private let engine: any ActivityDiffing
@@ -77,17 +77,26 @@ actor PollScheduler {
     /// each cycle. A plain value so it can cross the actor boundary.
     struct PollConfiguration: Sendable {
         var baseInterval: TimeInterval
+        var activeInterval: TimeInterval
+        var batteryInterval: TimeInterval
         var scope: RepositoryScope
         var enabledNotificationKinds: Set<ActivityKind>
+        var requestOptions: DashboardRequestOptions
 
         init(
             baseInterval: TimeInterval = PollScheduler.defaultIdleInterval,
+            activeInterval: TimeInterval = PollScheduler.defaultActiveInterval,
+            batteryInterval: TimeInterval = PollScheduler.defaultBatteryInterval,
             scope: RepositoryScope = .default,
-            enabledNotificationKinds: Set<ActivityKind> = Set(ActivityKind.allCases)
+            enabledNotificationKinds: Set<ActivityKind> = Set(ActivityKind.allCases),
+            requestOptions: DashboardRequestOptions = DashboardRequestOptions()
         ) {
             self.baseInterval = baseInterval
+            self.activeInterval = activeInterval
+            self.batteryInterval = batteryInterval
             self.scope = scope
             self.enabledNotificationKinds = enabledNotificationKinds
+            self.requestOptions = requestOptions
         }
     }
 
@@ -220,9 +229,9 @@ actor PollScheduler {
 
         var desired: TimeInterval
         if popoverOpen {
-            desired = PollScheduler.activeInterval
+            desired = configuration.activeInterval
         } else if isOnBattery() {
-            desired = max(configuration.baseInterval, PollScheduler.batteryInterval)
+            desired = max(configuration.baseInterval, configuration.batteryInterval)
         } else {
             desired = configuration.baseInterval
         }
@@ -258,7 +267,10 @@ actor PollScheduler {
         log.info("poll started baseline=\(self.state.hasBaseline, privacy: .public) watchedWatermarks=\(self.state.watermarks.count, privacy: .public)")
 
         do {
-            let snapshot = try await api.fetchDashboard(scope: configuration.scope)
+            let snapshot = try await api.fetchDashboard(
+                scope: configuration.scope,
+                options: configuration.requestOptions
+            )
 
             guard revision == generation, !Task.isCancelled else { return }
             if let previous = state.lastSnapshot,

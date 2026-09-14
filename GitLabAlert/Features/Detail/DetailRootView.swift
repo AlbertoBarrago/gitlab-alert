@@ -453,7 +453,7 @@ enum DetailPreviewFixtures {
     /// Never reached: previews do no I/O. Present only because `AppModel`
     /// requires the collaborators.
     private struct PreviewAPI: GitLabAPI {
-        func fetchDashboard(scope: RepositoryScope) async throws -> DashboardSnapshot { DetailPreviewFixtures.snapshot }
+        func fetchDashboard(scope: RepositoryScope, options: DashboardRequestOptions) async throws -> DashboardSnapshot { DetailPreviewFixtures.snapshot }
         func verifyToken() async throws -> Profile { DetailPreviewFixtures.profile }
     }
 

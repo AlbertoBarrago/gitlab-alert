@@ -444,10 +444,10 @@ final class AppModel {
 
     /// Loads the unfiltered repository list for the Settings picker.
     ///
-    /// One dashboard round trip plus one page per 100 repositories — a handful
-    /// of the 5000 hourly points, spent when the Repositories tab opens or the
-    /// user asks for a reload, never on the poll cycle. It does not touch the
-    /// scheduler, the watermarks or the stored scope.
+    /// One dashboard round trip plus one pipeline request per repository. The
+    /// list is fully paginated and pipeline requests use the same bounded
+    /// settings as the poll cycle. It does not touch the scheduler, watermarks
+    /// or stored scope.
     func loadRepositoryCatalog(force: Bool = false) {
         guard authState.isReady else { return }
         guard !isLoadingRepositoryCatalog else { return }
@@ -460,7 +460,10 @@ final class AppModel {
         catalogTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let snapshot = try await self.api.fetchDashboard(scope: Self.catalogScope)
+                let snapshot = try await self.api.fetchDashboard(
+                    scope: Self.catalogScope,
+                    options: self.preferences.dashboardRequestOptions
+                )
                 guard revision == self.accountRevision, !Task.isCancelled else { return }
                 self.repositoryCatalog = snapshot.repositories
             } catch let error as GitLabError {

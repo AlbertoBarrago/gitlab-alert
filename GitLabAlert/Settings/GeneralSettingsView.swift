@@ -21,11 +21,23 @@ struct GeneralSettingsView: View {
                 }
                 .accessibilityLabel("Polling interval")
 
+                Picker("While the popover is open", selection: model.preferences.binding(\.activePollInterval)) {
+                    ForEach(intervalChoices, id: \.self) { interval in
+                        Text(Self.label(for: interval)).tag(interval)
+                    }
+                }
+                .accessibilityLabel("Active polling interval")
+
+                Picker("On battery or Low Power Mode", selection: model.preferences.binding(\.batteryPollInterval)) {
+                    ForEach(intervalChoices, id: \.self) { interval in
+                        Text(Self.label(for: interval)).tag(interval)
+                    }
+                }
+                .accessibilityLabel("Battery polling interval")
+
                 SettingsFootnote(
-                    "This is the idle cadence on AC power. The app polls every minute while the popover "
-                    + "is open, backs off to 15 minutes on battery, and pauses while the Mac sleeps or the "
-                    + "network is gone. One cycle costs 1 of 5000 API points an hour, so battery is the "
-                    + "reason to go slow."
+                    "The app pauses while the Mac sleeps or the network is unavailable. GitLab rate limits "
+                    + "can only slow these cadences down, never make them more frequent."
                 )
 
                 if let warning = model.rateLimitWarning {
@@ -45,6 +57,27 @@ struct GeneralSettingsView: View {
             Section("Popover") {
                 Toggle("Show the profile header", isOn: model.preferences.binding(\.showProfileHeader))
                 SettingsFootnote("Your avatar, name, followers and repository count at the top of the popover.")
+            }
+
+            Section("GitLab API") {
+                Picker("Items per API page", selection: model.preferences.binding(\.apiPageSize)) {
+                    Text("25, gentler").tag(25)
+                    Text("50").tag(50)
+                    Text("100, faster").tag(100)
+                }
+                .accessibilityLabel("GitLab API page size")
+
+                Picker("Simultaneous pipeline checks", selection: model.preferences.binding(\.pipelineConcurrency)) {
+                    ForEach(1...8, id: \.self) { value in
+                        Text(value == 1 ? "1 request" : "\(value) requests").tag(value)
+                    }
+                }
+                .accessibilityLabel("Maximum simultaneous pipeline checks")
+
+                SettingsFootnote(
+                    "Smaller pages and lower concurrency reduce load on self-managed GitLab instances. "
+                    + "All pages are still fetched, so no repositories or work items are omitted."
+                )
             }
 
             Section("Sections") {

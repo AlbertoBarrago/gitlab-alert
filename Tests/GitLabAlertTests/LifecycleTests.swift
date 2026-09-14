@@ -41,7 +41,7 @@ private actor ControlledAPI: GitLabAPI {
 
     func completeSubsequentDashboards(with value: DashboardSnapshot) { subsequentDashboard = value }
 
-    func fetchDashboard(scope: RepositoryScope) async throws -> DashboardSnapshot {
+    func fetchDashboard(scope: RepositoryScope, options: DashboardRequestOptions) async throws -> DashboardSnapshot {
         dashboardCalls += 1
         if dashboardCalls > 1, let subsequentDashboard { return subsequentDashboard }
         return try await withCheckedThrowingContinuation { dashboards.append($0) }
@@ -96,6 +96,28 @@ private func model(api: ControlledAPI, store: MemoryStore) -> AppModel {
 @Suite("App lifecycle", .timeLimit(.minutes(1)))
 @MainActor
 struct LifecycleTests {
+    @Test func performancePreferencesPersistAndRejectUnsafeValues() {
+        let suiteName = "GitLabAlertTests.preferences.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        let preferences = Preferences(defaults: defaults)
+
+        preferences.activePollInterval = 120
+        preferences.batteryPollInterval = 600
+        preferences.apiPageSize = 50
+        preferences.pipelineConcurrency = 3
+
+        let restored = Preferences(defaults: defaults)
+        #expect(restored.activePollInterval == 120)
+        #expect(restored.batteryPollInterval == 600)
+        #expect(restored.dashboardRequestOptions == DashboardRequestOptions(pageSize: 50, pipelineConcurrency: 3))
+
+        restored.apiPageSize = 26
+        restored.pipelineConcurrency = 99
+        #expect(restored.apiPageSize == DashboardRequestOptions.defaultPageSize)
+        #expect(restored.pipelineConcurrency == 8)
+        UserDefaults.standard.removePersistentDomain(forName: suiteName)
+    }
+
     @Test func automaticPollJoinsAnExistingManualRefresh() async throws {
         let api = ControlledAPI(), store = MemoryStore(), recorder = Recorder()
         await api.completeSubsequentDashboards(with: snapshot())

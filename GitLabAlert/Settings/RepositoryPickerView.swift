@@ -379,6 +379,9 @@ struct RepositoryPickerView: View {
             }
         }
         .formStyle(.grouped)
+        // A popover does not consistently inherit the Settings window's
+        // switch style, which can render an active toggle without its thumb.
+        .toggleStyle(.switch)
         .frame(width: 330, height: 260)
     }
 

@@ -92,8 +92,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 await MainActor.run {
                     PollScheduler.PollConfiguration(
                         baseInterval: preferences.basePollInterval,
+                        activeInterval: preferences.activePollInterval,
+                        batteryInterval: preferences.batteryPollInterval,
                         scope: preferences.repositoryScope,
-                        enabledNotificationKinds: preferences.enabledNotificationKinds
+                        enabledNotificationKinds: preferences.enabledNotificationKinds,
+                        requestOptions: preferences.dashboardRequestOptions
                     )
                 }
             },

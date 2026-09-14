@@ -107,8 +107,8 @@ These are not covered anywhere and are accepted for now:
 - `SMAppService` login-item registration behaves differently outside `/Applications`; only the installed
   build is meaningful to test.
 - Popover placement across display reconfiguration (unplugging an external monitor while open).
-- Whether GraphQL `search` connections are also billed against the 30/minute search limit; the embedded
-  `rateLimit` field and the response headers will answer it after an hour of real use.
+- How self-managed GitLab instances behave at their configured page-size and
+  pipeline-concurrency limits under sustained polling.
 
 ## Verification — 2026-09-11
 
@@ -125,4 +125,5 @@ These are not covered anywhere and are accepted for now:
 - Runtime check: launched successfully with `NSRunningApplication.activationPolicy == .accessory`, including after reopening the detail window.
 - The onboarding popover now measures its full content to include the bottom actions; long content remains scrollable.
 - The menu bar mascot was rendered and inspected at 18 points on light and dark backgrounds, with and without the unread badge.
-- Live diagnostics showed the 100-node repository query timing out at GitLab's gateway after 10.7 seconds; repository pages were reduced to 25 while retaining cursor pagination.
+- The REST client follows all list pages and defaults to 25 items per page with
+  at most 6 simultaneous pipeline checks. Both values are adjustable in Settings.

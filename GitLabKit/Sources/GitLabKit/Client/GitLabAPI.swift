@@ -29,7 +29,31 @@ public struct RepositoryScope: Sendable, Codable, Hashable {
     }
 }
 
+/// Per-request cost controls. They are deliberately bounded so a preference
+/// cannot turn a dashboard refresh into an unbounded burst of API traffic.
+public struct DashboardRequestOptions: Sendable, Hashable {
+    public static let defaultPageSize = 25
+    public static let defaultPipelineConcurrency = 6
+
+    public var pageSize: Int
+    public var pipelineConcurrency: Int
+
+    public init(
+        pageSize: Int = DashboardRequestOptions.defaultPageSize,
+        pipelineConcurrency: Int = DashboardRequestOptions.defaultPipelineConcurrency
+    ) {
+        self.pageSize = min(max(pageSize, 25), 100)
+        self.pipelineConcurrency = min(max(pipelineConcurrency, 1), 8)
+    }
+}
+
 public protocol GitLabAPI: Sendable {
-    func fetchDashboard(scope: RepositoryScope) async throws -> DashboardSnapshot
+    func fetchDashboard(scope: RepositoryScope, options: DashboardRequestOptions) async throws -> DashboardSnapshot
     func verifyToken() async throws -> Profile
+}
+
+public extension GitLabAPI {
+    func fetchDashboard(scope: RepositoryScope) async throws -> DashboardSnapshot {
+        try await fetchDashboard(scope: scope, options: DashboardRequestOptions())
+    }
 }

@@ -90,8 +90,10 @@ GitLab instances hosted below a URL sub-path are not supported yet.
 
 Each refresh fetches your profile, open merge requests where you are a reviewer
 or author, issues assigned to you, and the member projects in scope. The latest
-pipeline is then fetched for each watched project. Independent dashboard
-requests run concurrently.
+pipeline is then fetched for each watched project. List endpoints are fully
+paginated and pipeline checks are concurrency-limited. Both the page size and
+the pipeline concurrency can be adjusted in Settings for self-managed GitLab
+instances.
 
 The app stores credentials in the Keychain, preferences in `UserDefaults`, and
 the last dashboard plus notification watermarks in Application Support. The
