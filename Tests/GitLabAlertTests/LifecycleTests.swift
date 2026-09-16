@@ -388,4 +388,19 @@ struct LifecycleTests {
                                         activityLog: app.activityLog, unreadEventIDs: app.unreadEventIDs)
         #expect(DetailRowFactory.resolveRowID(pendingItemID: event.id, rows: rows, activityLog: app.activityLog) == event.id)
     }
+
+    @Test func notificationWithURLDoesNotOpenTheActivityWindow() throws {
+        let app = model(api: ControlledAPI(), store: MemoryStore())
+        let url = try #require(URL(string: "https://gitlab.com/alice/repo/-/merge_requests/2"))
+        var openedURL: URL?
+        var openedDetail = false
+        app.openExternalURL = { openedURL = $0 }
+        app.openDetailWindow = { openedDetail = true }
+
+        app.handleNotificationOpen(eventID: "event", url: url)
+
+        #expect(openedURL == url)
+        #expect(openedDetail == false)
+        #expect(app.pendingSelection == nil)
+    }
 }

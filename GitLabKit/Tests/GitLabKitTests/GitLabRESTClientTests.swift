@@ -34,6 +34,10 @@ import Testing
     #expect(snapshot.repositories.map(\.nameWithOwner) == ["alice/one", "alice/two"])
     #expect(await http.projectPages == [1, 2])
     #expect(await http.mergeRequestFilters == Set(["reviewer_username", "assignee_username", "author_username"]))
+    #expect(await http.invalidMeFilterCount == 0)
+    #expect(await http.issueAssignees == ["alice"])
+    #expect(snapshot.reviewRequested.map(\.id) == ["42"])
+    #expect(snapshot.reviewRequested.first?.relevance.contains(.reviewRequested) == true)
 }
 
 @Test func dashboardHonorsPipelineConcurrencyLimit() async throws {
@@ -71,6 +75,8 @@ private struct StaticTokenStore: TokenStore {
 private actor PaginatedDashboardHTTPClient: HTTPClient {
     private(set) var projectPages: [Int] = []
     private(set) var mergeRequestFilters: Set<String> = []
+    private(set) var invalidMeFilterCount = 0
+    private(set) var issueAssignees: [String] = []
 
     func send(_ request: URLRequest) async throws -> HTTPResponse {
         let url = try #require(request.url)
@@ -82,9 +88,15 @@ private actor PaginatedDashboardHTTPClient: HTTPClient {
         case "/api/v4/user":
             return response(#"{"username":"alice","web_url":"https://gitlab.com/alice"}"#)
         case "/api/v4/merge_requests":
-            mergeRequestFilters.formUnion(["reviewer_username", "assignee_username", "author_username"].filter { query[$0] == "me" })
+            let filters = ["reviewer_username", "assignee_username", "author_username"]
+            mergeRequestFilters.formUnion(filters.filter { query[$0] == "alice" })
+            invalidMeFilterCount += filters.filter { query[$0] == "me" }.count
+            if query["assignee_username"] == "alice" {
+                return response(#"[{"id":42,"iid":2,"title":"Assigned work","references":{"full":"alice/one!2"},"web_url":"https://gitlab.com/alice/one/-/merge_requests/2","created_at":"2026-09-16T12:00:00Z","updated_at":"2026-09-16T12:00:00Z","draft":false,"user_notes_count":0}]"#)
+            }
             return response("[]")
         case "/api/v4/issues":
+            issueAssignees.append(query["assignee_username"] ?? "")
             return response("[]")
         case "/api/v4/projects":
             let page = Int(query["page"] ?? "") ?? 0

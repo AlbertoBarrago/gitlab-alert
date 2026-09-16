@@ -4,7 +4,7 @@ A macOS menu bar app that keeps the GitLab work needing your attention in the
 corner of your screen, instead of in a browser tab. It lives in the menu bar
 only, with no Dock icon, and shows you:
 
-- **Merge requests awaiting you**: review requests and merge requests you authored
+- **Merge requests awaiting you**: merge requests assigned to you, review requests and merge requests you authored
 - **Open issues**: issues assigned to you
 - **Pipeline state**: the latest pipeline of the GitLab projects you watch
 - **Repository activity**: your projects, including star and fork counts when GitLab provides them
@@ -120,8 +120,8 @@ GitLab instances hosted below a URL sub-path are not supported yet.
 
 ## How it works
 
-Each refresh fetches your profile, open merge requests where you are a reviewer
-or author, issues assigned to you, and the member projects in scope. The latest
+Each refresh fetches your profile, open merge requests where you are an assignee,
+reviewer or author, issues assigned to you, and the member projects in scope. The latest
 pipeline is then fetched for each watched project. List endpoints are fully
 paginated and pipeline checks are concurrency-limited. Both the page size and
 the pipeline concurrency can be adjusted in Settings for self-managed GitLab

@@ -257,39 +257,49 @@ struct PopoverRootView: View {
         switch section {
         case .activity:
             ForEach(Array(model.activityLog.prefix(visibleLimit))) { event in
+                let id = rowID(section: section, itemID: event.id)
                 ActivityRowView(
                     event: event,
                     isUnread: model.unreadEventIDs.contains(event.id),
-                    isSelected: selection == event.id
+                    isSelected: selection == id
                 ) {
                     model.openOnGitLab(event.url)
                 } markSeen: {
                     model.markActivitySeen([event.id])
                 }
-                .id(event.id)
+                .id(id)
             }
         case .repositories:
             ForEach(Array(model.unreadBrokenRepositories.prefix(visibleLimit))) { repository in
                 let item = WorkItemRowView.Item(repository: repository)
+                let id = rowID(section: section, itemID: item.id)
                 WorkItemRowView(
                     item: item,
-                    isSelected: selection == item.id,
+                    isSelected: selection == id,
                     isUnread: model.isRepositoryAlertUnread(repository)
                 ) {
                     model.openOnGitLab(item.url)
                 } markSeen: {
                     model.markRepositoryAlertsSeen([repository])
                 }
-                .id(item.id)
+                .id(id)
             }
         default:
             ForEach(items(for: section)) { item in
-                WorkItemRowView(item: item, isSelected: selection == item.id) {
+                let id = rowID(section: section, itemID: item.id)
+                WorkItemRowView(item: item, isSelected: selection == id) {
                     model.openOnGitLab(item.url)
                 }
-                .id(item.id)
+                .id(id)
             }
         }
+    }
+
+    /// The same merge request can belong to both the assigned/review queue and
+    /// the authored queue. Lazy stacks require distinct view identities across
+    /// the whole container or one of those rows can disappear while expanded.
+    private func rowID(section: DashboardSection, itemID: String) -> String {
+        "\(section.id)|\(itemID)"
     }
 
     private func items(for section: DashboardSection) -> [WorkItemRowView.Item] {
@@ -374,9 +384,13 @@ struct PopoverRootView: View {
             ids.append(section.id)
             guard expanded.contains(section) else { continue }
             if section == .activity {
-                ids.append(contentsOf: model.activityLog.prefix(visibleLimit).map(\.id))
+                ids.append(contentsOf: model.activityLog.prefix(visibleLimit).map {
+                    rowID(section: section, itemID: $0.id)
+                })
             } else {
-                ids.append(contentsOf: items(for: section).map(\.id))
+                ids.append(contentsOf: items(for: section).map {
+                    rowID(section: section, itemID: $0.id)
+                })
             }
         }
         return ids
@@ -432,12 +446,16 @@ struct PopoverRootView: View {
             toggle(section)
             return
         }
-        if let event = model.activityLog.first(where: { $0.id == selection }) {
+        if let event = model.activityLog.first(where: {
+            rowID(section: .activity, itemID: $0.id) == selection
+        }) {
             model.openOnGitLab(event.url)
             return
         }
         for section in model.sections {
-            if let item = items(for: section).first(where: { $0.id == selection }) {
+            if let item = items(for: section).first(where: {
+                rowID(section: section, itemID: $0.id) == selection
+            }) {
                 model.openOnGitLab(item.url)
                 return
             }

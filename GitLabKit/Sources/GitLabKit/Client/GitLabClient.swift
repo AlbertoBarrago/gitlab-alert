@@ -30,14 +30,17 @@ public struct GitLabClient: GitLabAPI {
         scope: RepositoryScope,
         options: DashboardRequestOptions
     ) async throws -> DashboardSnapshot {
-        async let profile = fetchProfile()
-        async let reviewRequested = fetchMergeRequests(query: ["reviewer_username": "me"], pageSize: options.pageSize)
-        async let assignedMergeRequests = fetchMergeRequests(query: ["assignee_username": "me"], pageSize: options.pageSize)
-        async let authored = fetchMergeRequests(query: ["author_username": "me"], pageSize: options.pageSize)
-        async let assignedIssues = fetchIssues(query: ["assignee_username": "me"], pageSize: options.pageSize)
+        // GitLab's username filters require a literal username. `me` is not an
+        // alias here, and older self-managed versions do not support every
+        // authenticated-user scope offered by current GitLab releases.
+        let resolvedProfile = try await fetchProfile()
+        let username = resolvedProfile.login
+        async let reviewRequested = fetchMergeRequests(query: ["reviewer_username": username], pageSize: options.pageSize)
+        async let assignedMergeRequests = fetchMergeRequests(query: ["assignee_username": username], pageSize: options.pageSize)
+        async let authored = fetchMergeRequests(query: ["author_username": username], pageSize: options.pageSize)
+        async let assignedIssues = fetchIssues(query: ["assignee_username": username], pageSize: options.pageSize)
         async let projects = fetchProjects(scope: scope, options: options)
 
-        let resolvedProfile = try await profile
         let review = try await reviewRequested
         let assigned = try await assignedMergeRequests
         let mine = try await authored

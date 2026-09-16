@@ -77,6 +77,7 @@ final class AppModel {
     var openDetailWindow: (() -> Void)?
     var openSettingsWindow: (() -> Void)?
     var closePopover: (() -> Void)?
+    var openExternalURL: (URL) -> Void = { NSWorkspace.shared.open($0) }
 
     /// Set by `AppDelegate` so the popover's SwiftUI content can ask AppKit for
     /// the height it wants. The content is hosted in an `NSHostingView` outside
@@ -418,7 +419,7 @@ final class AppModel {
             log.error("refused to open a URL outside the configured GitLab instance")
             return
         }
-        NSWorkspace.shared.open(url)
+        openExternalURL(url)
         closePopover?()
     }
 
@@ -433,19 +434,19 @@ final class AppModel {
         openSettingsWindow?()
     }
 
-    /// Routes a notification click: find the event, open the detail window on
-    /// the matching section, and fall back to the browser when there is nothing
-    /// in-app to show.
+    /// Routes a notification click to its GitLab resource when one exists.
+    /// Summary and legacy notifications without a URL fall back to the matching
+    /// activity row in the detail window.
     func handleNotificationOpen(eventID: String, url: URL?) {
+        if url != nil {
+            openOnGitLab(url)
+            return
+        }
         if let event = activityLog.first(where: { $0.id == eventID }) {
             openDetail(section: .activity, itemID: event.id)
             return
         }
-        if url != nil {
-            openOnGitLab(url)
-        } else {
-            openDetailWindow?()
-        }
+        openDetailWindow?()
     }
 
     // MARK: - Inbound from the scheduler
