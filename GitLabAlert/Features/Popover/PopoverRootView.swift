@@ -14,7 +14,7 @@ struct PopoverRootView: View {
     let model: AppModel
 
     /// Which sections are open. Session-scoped on purpose: the useful default is
-    /// "whatever is actionable", not whatever you left open yesterday.
+    /// "whatever is actionable", not whatever the user left open yesterday.
     @State private var expanded: Set<DashboardSection> = []
     @State private var selection: String?
     @State private var didSeedExpansion = false

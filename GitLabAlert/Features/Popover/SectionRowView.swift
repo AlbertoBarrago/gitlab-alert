@@ -22,8 +22,6 @@ struct SectionRowView: View {
                     .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(.tertiary)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                    // Rotation only: it changes no layout, so it cannot fight
-                    // the popover's own height animation.
                     .animation(.snappy(duration: 0.18), value: isExpanded)
                     .frame(width: 10)
 
