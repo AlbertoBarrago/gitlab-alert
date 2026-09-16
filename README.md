@@ -34,10 +34,11 @@ and shell scripts. You do need the macOS command line tools, which provide
 
 ### Install a release without a certificate
 
-Download `GitLabAlert-0.1.0.zip` from the
+Download `GitLabAlert-0.1.1.dmg` from the
 [latest GitHub release](https://github.com/AlbertoBarrago/gitlab-alert/releases/latest),
-unzip it and move `GitLabAlert.app` to `/Applications`. You do not need an Apple
-Developer account or your own signing certificate.
+open it and drag `GitLabAlert.app` onto the Applications shortcut. You do not
+need an Apple Developer account or your own signing certificate. A ZIP is also
+available as a fallback.
 
 The app is not notarized, so macOS requires one explicit first launch: in
 Finder, Control-click or right-click `GitLabAlert.app`, choose **Open**, then
@@ -153,8 +154,9 @@ bash bin/make-release.sh
 ```
 
 This runs the tests, builds Release, assembles and signs the bundle, then writes
-`dist/GitLabAlert-<version>.zip`. It refuses to create a release with an ad-hoc
-signature.
+`dist/GitLabAlert-<version>.dmg` and `dist/GitLabAlert-<version>.zip`. It mounts
+the DMG to verify its contents and the embedded app signature, and refuses to
+create a release with an ad-hoc signature.
 
 ## License
 

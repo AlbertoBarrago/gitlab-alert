@@ -82,7 +82,38 @@ fi
 VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Info.plist)
 mkdir -p "${DIST}"
 ZIP="${DIST}/${BUNDLE_NAME}-${VERSION}.zip"
+DMG="${DIST}/${BUNDLE_NAME}-${VERSION}.dmg"
 rm -f "${ZIP}"
+rm -f "${DMG}"
+
+STAGING=$(mktemp -d)
+MOUNT=$(mktemp -d)
+MOUNTED=false
+cleanup() {
+    if [ "${MOUNTED}" = true ]; then
+        hdiutil detach "${MOUNT}" -quiet 2>/dev/null || true
+    fi
+    rm -rf "${STAGING}" "${MOUNT}"
+}
+trap cleanup EXIT
+
+echo "▶ Packaging ${DMG}…"
+ditto "${APP}" "${STAGING}/${BUNDLE_NAME}.app"
+ln -s /Applications "${STAGING}/Applications"
+hdiutil create \
+    -volname "GitLab Alert ${VERSION}" \
+    -srcfolder "${STAGING}" \
+    -ov \
+    -format UDZO \
+    "${DMG}" >/dev/null
+
+echo "▶ Verifying ${DMG}…"
+hdiutil attach "${DMG}" -readonly -nobrowse -mountpoint "${MOUNT}" -quiet
+MOUNTED=true
+test -L "${MOUNT}/Applications"
+codesign --verify --deep --strict "${MOUNT}/${BUNDLE_NAME}.app"
+hdiutil detach "${MOUNT}" -quiet
+MOUNTED=false
 
 echo "▶ Packaging ${ZIP}…"
 ditto -c -k --sequesterRsrc --keepParent "${APP}" "${ZIP}"
@@ -91,6 +122,7 @@ ditto -c -k --sequesterRsrc --keepParent "${APP}" "${ZIP}"
 # and this is a build-from-source tool. Anyone else downloading the zip has to
 # right-click → Open on first launch, or build it themselves.
 echo ""
-echo "▶ Done → ${ZIP}"
+echo "▶ Done → ${DMG}"
+echo "          ${ZIP}"
 echo "   Signed with: ${CERT}"
 echo "   Not notarized: first launch on another Mac needs right-click → Open."
