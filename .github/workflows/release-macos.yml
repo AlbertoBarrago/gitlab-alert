@@ -1,0 +1,171 @@
+name: macOS Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build and publish (e.g. v0.1.5). It must already exist.'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build, sign and publish
+    runs-on: macos-26
+
+    steps:
+      - name: Resolve target tag
+        id: target
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.target.outputs.tag }}
+          fetch-depth: 0
+
+      # The bundle version is a literal in Info.plist, not a build variable, so
+      # nothing keeps it in step with the tag except this check. Publishing
+      # GitLabAlert-0.1.5.dmg containing 0.1.4 is worse than failing here.
+      # The source uses concurrency annotations that only landed in the macOS 26
+      # SDK: on Xcode 16.4 the UserNotifications API is not Sendable-annotated
+      # and Notifier.swift fails to compile. Pin the toolchain rather than
+      # weaken the source for a runner image.
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Check the tag matches Info.plist
+        run: |
+          set -euo pipefail
+          PLIST=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Info.plist)
+          if [ "$PLIST" != "${{ steps.target.outputs.version }}" ]; then
+            echo "::error::Tag ${{ steps.target.outputs.tag }} does not match CFBundleShortVersionString ${PLIST}."
+            exit 1
+          fi
+
+      - name: Run tests
+        run: bash bin/test.sh
+
+      # Every release is signed with the SAME self-signed identity. macOS pins
+      # Keychain item ACLs and the notification grant to the designated
+      # requirement: ad-hoc signing derives it from the cdhash, which changes on
+      # every build, so an update would silently drop the stored token and the
+      # notification permission. See bin/make-signing-cert.sh.
+      - name: Import the signing identity
+        env:
+          CERT_P12_BASE64: ${{ secrets.SIGNING_CERTIFICATE_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CERT_P12_BASE64}" ]; then
+            echo "::error::Missing secret SIGNING_CERTIFICATE_P12_BASE64. A release cannot be ad-hoc signed."
+            exit 1
+          fi
+
+          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASS=$(openssl rand -base64 24)
+          printf '%s' "${CERT_P12_BASE64}" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+
+          security create-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" \
+            -P "${CERT_PASSWORD}" -T /usr/bin/codesign
+
+          # Let codesign use the private key without an interactive prompt.
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASS" "$KEYCHAIN" >/dev/null
+
+          # Make the keychain visible to codesign's identity search.
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          security default-keychain -s "$KEYCHAIN"
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+          rm -f "$RUNNER_TEMP/cert.p12"
+
+      # Same script the maintainer runs locally, pointed at a staging directory
+      # instead of /Applications. One packaging implementation, not two.
+      - name: Build, sign and package
+        env:
+          APP_DIR: ${{ runner.temp }}/staging
+          SKIP_TESTS: '1'
+        run: |
+          set -euo pipefail
+          mkdir -p "$APP_DIR"
+          bash bin/make-release.sh
+
+      - name: Verify the artifacts
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.target.outputs.version }}"
+          test -f "dist/GitLabAlert-${VERSION}.dmg"
+          test -f "dist/GitLabAlert-${VERSION}.zip"
+          test -f "dist/SHA256SUMS.txt"
+          codesign --verify --deep --strict "${{ runner.temp }}/staging/GitLabAlert.app"
+          # The authority must be the stable self-signed identity, never ad-hoc.
+          codesign -dvvv "${{ runner.temp }}/staging/GitLabAlert.app" 2>&1 \
+            | grep -q "Authority=GitLab Alert Signing"
+
+      - name: Generate the release notes
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.target.outputs.tag }}"
+          PREV_TAG=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
+          {
+            echo "## What's changed"
+            echo ""
+            if [ -z "$PREV_TAG" ]; then
+              git log --pretty=format:"- %s (%h)" --no-merges
+            else
+              git log "${PREV_TAG}..${TAG}" --pretty=format:"- %s (%h)" --no-merges
+            fi
+            echo ""
+            echo ""
+            echo "## Install"
+            echo ""
+            echo "Open the DMG and drag GitLab Alert onto Applications. The app is signed with a stable"
+            echo "self-signed identity but **not Apple-notarized**, so the first launch is blocked: use"
+            echo "**System Settings → Privacy & Security → Open Anyway**."
+            echo ""
+            echo "Verify what you downloaded against \`SHA256SUMS.txt\`:"
+            echo ""
+            echo '```'
+            echo "shasum -a 256 -c SHA256SUMS.txt"
+            echo '```'
+            if [ -n "$PREV_TAG" ]; then
+              echo ""
+              echo "**Full changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${TAG}"
+            fi
+          } > release_notes.md
+          cat release_notes.md
+
+      - name: Publish the release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.target.outputs.tag }}"
+          VERSION="${{ steps.target.outputs.version }}"
+          ASSETS=(
+            "dist/GitLabAlert-${VERSION}.dmg"
+            "dist/GitLabAlert-${VERSION}.zip"
+            "dist/SHA256SUMS.txt"
+          )
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
+          else
+            gh release create "$TAG" \
+              --title "GitLab Alert ${VERSION}" \
+              --notes-file release_notes.md \
+              "${ASSETS[@]}"
+          fi

@@ -4,12 +4,16 @@ set -e
 cd "$(dirname "$0")/.."
 
 BUNDLE_NAME="GitLabAlert"
-APP="/Applications/${BUNDLE_NAME}.app"
+# Where the bundle is assembled. Locally this is the installed app, so a release
+# build doubles as an install. CI overrides it with a staging directory: a
+# runner has no /Applications worth writing to, and nothing to keep in sync.
+APP_DIR="${APP_DIR:-/Applications}"
+APP="${APP_DIR}/${BUNDLE_NAME}.app"
 CONTENTS="${APP}/Contents"
 MACOS="${CONTENTS}/MacOS"
 RESOURCES="${CONTENTS}/Resources"
-SIGNING_CN="GitLab Alert Signing"
-DIST="dist"
+SIGNING_CN="${SIGNING_CN:-GitLab Alert Signing}"
+DIST="${DIST:-dist}"
 
 # A release must have a stable designated requirement: Keychain item ACLs and the
 # notification grant are pinned to it, and ad-hoc's changes on every build.
@@ -41,12 +45,20 @@ if [ -z "${CERT}" ]; then
     exit 1
 fi
 
-echo "▶ Running logic tests…"
-bash bin/test.sh
+if [ "${SKIP_TESTS:-0}" = "1" ]; then
+    echo "▶ Skipping logic tests (SKIP_TESTS=1)."
+else
+    echo "▶ Running logic tests…"
+    bash bin/test.sh
+fi
 
-echo "▶ Stopping running instance…"
-pkill -x "${BUNDLE_NAME}" 2>/dev/null || true
-sleep 0.3
+# Only meaningful when we are about to overwrite the installed app. On a
+# staging build there is nothing running to displace.
+if [ "${APP_DIR}" = "/Applications" ]; then
+    echo "▶ Stopping running instance…"
+    pkill -x "${BUNDLE_NAME}" 2>/dev/null || true
+    sleep 0.3
+fi
 
 echo "▶ Building ${BUNDLE_NAME} (release)…"
 swift build -c release
@@ -121,6 +133,12 @@ ditto -c -k --sequesterRsrc --keepParent "${APP}" "${ZIP}"
 # NOT notarized, and deliberately so: notarization needs a paid Developer ID,
 # and this is a build-from-source tool. Anyone else downloading the zip has to
 # use Privacy & Security → Open Anyway after the first blocked launch.
+echo "▶ Writing checksums…"
+CHECKSUMS="${DIST}/SHA256SUMS.txt"
+rm -f "${CHECKSUMS}"
+(cd "${DIST}" && shasum -a 256 "$(basename "${DMG}")" "$(basename "${ZIP}")" > "$(basename "${CHECKSUMS}")")
+cat "${CHECKSUMS}"
+
 echo ""
 echo "▶ Done → ${DMG}"
 echo "          ${ZIP}"

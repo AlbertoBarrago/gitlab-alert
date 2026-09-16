@@ -150,27 +150,37 @@ enum SampleData {
         ),
     ]
 
+    /// Hoisted out of `inboundIssues` rather than written inline: an array
+    /// literal subscripted inside an initializer call, next to two ternaries,
+    /// is enough to push the expression past the type checker's budget on a
+    /// slower machine. It builds here and times out in CI.
+    private static let inboundIssueTitles: [String] = [
+        "Crash on launch when state.json is truncated",
+        "Feature request: per-repository mute",
+        "Stars counted twice after an unstar",
+        "Dark menu bar glyph is one pixel off centre",
+        "Add a Homebrew cask",
+        "Rate limit warning never disappears",
+        "Support GitLab Enterprise hosts",
+    ]
+
     /// Seven, so the "See all" affordance has something to do.
-    static let inboundIssues: [IssueItem] = (0..<7).map { index in
-        IssueItem(
+    static let inboundIssues: [IssueItem] = inboundIssueTitles.enumerated().map { index, title in
+        let repository: String = index.isMultiple(of: 2) ? "alBz/telemaco" : "alBz/grapher"
+        let labels: [String] = index.isMultiple(of: 3) ? ["triage"] : []
+        let number: Int = 500 + index
+        let age = Double(index + 1)
+        return IssueItem(
             id: "IN_\(index)",
-            number: 500 + index,
-            title: [
-                "Crash on launch when state.json is truncated",
-                "Feature request: per-repository mute",
-                "Stars counted twice after an unstar",
-                "Dark menu bar glyph is one pixel off centre",
-                "Add a Homebrew cask",
-                "Rate limit warning never disappears",
-                "Support GitLab Enterprise hosts",
-            ][index],
-            repository: index.isMultiple(of: 2) ? "alBz/telemaco" : "alBz/grapher",
+            number: number,
+            title: title,
+            repository: repository,
             author: actors[index % actors.count],
-            url: url("https://gitlab.com/alBz/telemaco/issues/\(500 + index)"),
-            createdAt: now.addingTimeInterval(-Double(index + 1) * 30_000),
-            updatedAt: now.addingTimeInterval(-Double(index + 1) * 4_000),
+            url: url("https://gitlab.com/alBz/telemaco/issues/\(number)"),
+            createdAt: now.addingTimeInterval(-age * 30_000),
+            updatedAt: now.addingTimeInterval(-age * 4_000),
             commentCount: index,
-            labels: index.isMultiple(of: 3) ? ["triage"] : [],
+            labels: labels,
             isInbound: true
         )
     }
