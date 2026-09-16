@@ -13,9 +13,18 @@ concurrency:
 jobs:
   test:
     name: Logic tests
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v5
+
+      # The source uses concurrency annotations that only landed in the macOS 26
+      # SDK: on Xcode 16.4 the UserNotifications API is not Sendable-annotated
+      # and Notifier.swift fails to compile. Pin the toolchain rather than
+      # weaken the source for a runner image.
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
 
       - name: Show toolchain
         run: swift --version
