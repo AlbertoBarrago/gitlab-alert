@@ -34,7 +34,7 @@ and shell scripts. You do need the macOS command line tools, which provide
 
 ### Install a release without a certificate
 
-Download `GitLabAlert-0.1.2.dmg` from the
+Download `GitLabAlert-0.1.3.dmg` from the
 [latest GitHub release](https://github.com/AlbertoBarrago/gitlab-alert/releases/latest),
 open it and drag `GitLabAlert.app` onto the Applications shortcut. You do not
 need an Apple Developer account or your own signing certificate. A ZIP is also

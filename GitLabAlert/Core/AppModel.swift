@@ -128,8 +128,11 @@ final class AppModel {
 
     // MARK: - Derived state for the UI
 
-    /// The number the status item badge shows: things actually waiting on the user.
-    var actionableCount: Int { snapshot?.actionableCount ?? 0 }
+    /// The menu bar is an inbox count. Persistent remote failures stop
+    /// contributing after explicit local acknowledgement.
+    var actionableCount: Int {
+        reviewRequested.count + assignedIssues.count + unreadBrokenRepositories.count
+    }
 
     var hasUnreadActivity: Bool { !unreadEventIDs.isEmpty }
 
@@ -145,6 +148,9 @@ final class AppModel {
     var inboundIssues: [IssueItem] { snapshot?.inboundIssues ?? [] }
     var repositories: [RepoSnapshot] { snapshot?.repositories ?? [] }
     var brokenRepositories: [RepoSnapshot] { snapshot?.brokenRepositories ?? [] }
+    var unreadBrokenRepositories: [RepoSnapshot] {
+        brokenRepositories.filter(isRepositoryAlertUnread)
+    }
 
     func isRepositoryAlertUnread(_ repository: RepoSnapshot) -> Bool {
         repository.checkState.isBroken && !seenRepositoryAlertIDs.contains(repository.repositoryAlertID)
@@ -156,7 +162,7 @@ final class AppModel {
         case .authoredMergeRequests: return authoredMergeRequests.count
         case .assignedIssues: return assignedIssues.count
         case .inboundIssues: return inboundIssues.count
-        case .repositories: return brokenRepositories.count
+        case .repositories: return unreadBrokenRepositories.count
         case .activity: return unreadEventIDs.count
         }
     }
@@ -208,9 +214,18 @@ final class AppModel {
     func markRepositoryAlertsSeen(_ repositories: [RepoSnapshot]) {
         let ids = Set(repositories.filter { $0.checkState.isBroken }.map(\.repositoryAlertID))
             .subtracting(seenRepositoryAlertIDs)
-        guard !ids.isEmpty else { return }
+        let repositoryNames = Set(repositories.map(\.nameWithOwner))
+        let relatedEventIDs = Set(unreadEventIDs.filter { id in
+            activityLog.contains {
+                $0.id == id && $0.kind == .checksFailed && repositoryNames.contains($0.repository)
+            }
+        })
+        guard !ids.isEmpty || !relatedEventIDs.isEmpty else { return }
         seenRepositoryAlertIDs.formUnion(ids)
-        Task { [weak self] in await self?.scheduler?.markEventsSeen(Array(ids)) }
+        unreadEventIDs.subtract(relatedEventIDs)
+        Task { [weak self] in
+            await self?.scheduler?.markEventsSeen(Array(ids.union(relatedEventIDs)))
+        }
     }
 
     /// Verifies and stores a pasted token. Returns nothing: the result lands in

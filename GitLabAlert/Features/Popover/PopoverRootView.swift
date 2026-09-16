@@ -269,7 +269,7 @@ struct PopoverRootView: View {
                 .id(event.id)
             }
         case .repositories:
-            ForEach(Array(model.brokenRepositories.prefix(visibleLimit))) { repository in
+            ForEach(Array(model.unreadBrokenRepositories.prefix(visibleLimit))) { repository in
                 let item = WorkItemRowView.Item(repository: repository)
                 WorkItemRowView(
                     item: item,
@@ -304,7 +304,7 @@ struct PopoverRootView: View {
         case .inboundIssues:
             all = model.inboundIssues.map(WorkItemRowView.Item.init(issue:))
         case .repositories:
-            all = model.brokenRepositories.map(WorkItemRowView.Item.init(repository:))
+            all = model.unreadBrokenRepositories.map(WorkItemRowView.Item.init(repository:))
         case .activity:
             all = []
         }

@@ -233,16 +233,31 @@ struct LifecycleTests {
         )
         var storedSnapshot = snapshot()
         storedSnapshot.repositories = [repository]
-        try store.save(PersistedState(lastSnapshot: storedSnapshot, hasBaseline: true))
+        let event = ActivityEvent(
+            id: "pipeline-failed|alice/repo|1",
+            kind: .checksFailed,
+            occurredAt: Date(),
+            repository: repository.nameWithOwner
+        )
+        try store.save(PersistedState(lastSnapshot: storedSnapshot, activityLog: [event], hasBaseline: true))
         let poller = scheduler(api: api, store: store, recorder: recorder)
         let app = model(api: api, store: store)
         app.attach(scheduler: poller)
         app.restore(try #require(await poller.restoredOutcome))
 
         #expect(app.isRepositoryAlertUnread(repository))
+        #expect(app.unreadBrokenRepositories == [repository])
+        #expect(app.actionableCount == 1)
+        #expect(app.unreadEventIDs.contains(event.id))
         app.markRepositoryAlertsSeen([repository])
-        try await eventually { store.load().seenEventIDs.contains(repository.repositoryAlertID) }
+        try await eventually {
+            let seen = store.load().seenEventIDs
+            return seen.contains(repository.repositoryAlertID) && seen.contains(event.id)
+        }
         #expect(!app.isRepositoryAlertUnread(repository))
+        #expect(app.unreadBrokenRepositories.isEmpty)
+        #expect(app.actionableCount == 0)
+        #expect(!app.unreadEventIDs.contains(event.id))
     }
 
     @Test func missingTokenDoesNotRestoreAnotherAccountsSnapshot() async throws {
