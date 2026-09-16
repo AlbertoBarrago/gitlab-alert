@@ -13,8 +13,11 @@ GitLab Alert works with GitLab.com and self-managed GitLab instances. It polls
 in the background, retains the last successful dashboard while offline, and
 only notifies you when tracked work or pipeline state changes.
 
-**Status:** under active development. It is a build-from-source tool, not a
-notarized or packaged application.
+**[Visit the product page](https://albertobarrago.github.io/gitlab-alert/)** for
+the quickest overview and installation guide.
+
+**Status:** under active development. Prebuilt releases are signed but not
+Apple-notarized; see the installation steps below before the first launch.
 
 <!-- TODO: screenshots once the popover UI settles -->
 
@@ -28,6 +31,19 @@ and shell scripts. You do need the macOS command line tools, which provide
 `swift` and `codesign`.
 
 ## Build and run
+
+### Install a release without a certificate
+
+Download `GitLabAlert-0.1.0.zip` from the
+[latest GitHub release](https://github.com/AlbertoBarrago/gitlab-alert/releases/latest),
+unzip it and move `GitLabAlert.app` to `/Applications`. You do not need an Apple
+Developer account or your own signing certificate.
+
+The app is not notarized, so macOS requires one explicit first launch: in
+Finder, Control-click or right-click `GitLabAlert.app`, choose **Open**, then
+confirm. After that, launch it normally from Applications or Spotlight.
+
+### Build from source
 
 ```sh
 bash bin/make-signing-cert.sh   # once, ever
@@ -59,15 +75,17 @@ loud warning. `security find-identity -v` can report revoked certificates as
 valid from a stale OCSP cache, so the scripts validate candidates by signing a
 scratch binary and running `codesign --verify --strict`.
 
-The app is **not notarized**, which requires a paid Developer ID. On another
-Mac, first launch needs right-click, then **Open**. Building from source avoids
-that step.
+The app is **not notarized**, which requires a paid Developer ID. Building from
+source avoids the first-launch Gatekeeper step. The signing certificate is
+optional for a single local build, but recommended for repeated builds so
+Keychain and notification permissions remain stable.
 
 ## Configuration
 
 GitLab Alert authenticates with a personal access token. In Settings, enter the
 origin of GitLab.com or of your self-managed instance, for example
-`https://gitlab.com` or `https://gitlab.example.com`, then restart the app.
+`https://gitlab.com` or `https://gitlab.example.com`. Origin changes take effect
+immediately.
 
 Create a token at the configured instance's
 `/-/user_settings/personal_access_tokens` page and grant only this scope:
