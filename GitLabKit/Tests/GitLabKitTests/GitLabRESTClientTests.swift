@@ -33,6 +33,7 @@ import Testing
 
     #expect(snapshot.repositories.map(\.nameWithOwner) == ["alice/one", "alice/two"])
     #expect(await http.projectPages == [1, 2])
+    #expect(await http.mergeRequestFilters == Set(["reviewer_username", "assignee_username", "author_username"]))
 }
 
 @Test func dashboardHonorsPipelineConcurrencyLimit() async throws {
@@ -69,6 +70,7 @@ private struct StaticTokenStore: TokenStore {
 
 private actor PaginatedDashboardHTTPClient: HTTPClient {
     private(set) var projectPages: [Int] = []
+    private(set) var mergeRequestFilters: Set<String> = []
 
     func send(_ request: URLRequest) async throws -> HTTPResponse {
         let url = try #require(request.url)
@@ -79,7 +81,10 @@ private actor PaginatedDashboardHTTPClient: HTTPClient {
         switch path {
         case "/api/v4/user":
             return response(#"{"username":"alice","web_url":"https://gitlab.com/alice"}"#)
-        case "/api/v4/merge_requests", "/api/v4/issues":
+        case "/api/v4/merge_requests":
+            mergeRequestFilters.formUnion(["reviewer_username", "assignee_username", "author_username"].filter { query[$0] == "me" })
+            return response("[]")
+        case "/api/v4/issues":
             return response("[]")
         case "/api/v4/projects":
             let page = Int(query["page"] ?? "") ?? 0

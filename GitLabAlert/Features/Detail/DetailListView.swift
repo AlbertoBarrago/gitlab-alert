@@ -531,7 +531,7 @@ struct DetailListView: View {
         case .section(let section):
             switch section {
             case .reviewRequested:
-                return ("checkmark.circle", "No reviews waiting", "Nobody is waiting on your review right now.")
+                return ("checkmark.circle", "Nothing needs attention", "No merge requests are assigned to you as reviewer or assignee.")
             case .authoredMergeRequests:
                 return ("arrow.triangle.branch", "No open merge requests", "You have nothing in flight.")
             case .assignedIssues:

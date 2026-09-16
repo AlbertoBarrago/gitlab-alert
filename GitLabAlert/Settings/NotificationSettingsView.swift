@@ -77,7 +77,7 @@ struct NotificationSettingsView: View {
         switch kind {
         case .star: return "Stars on my repositories"
         case .fork: return "Forks of my repositories"
-        case .reviewRequested: return "Review requests for me"
+        case .reviewRequested: return "Merge requests assigned to me"
         case .checksFailed: return "CI starts failing"
         case .checksRecovered: return "CI goes back to green"
         case .inboundIssue: return "New issues on my repositories"

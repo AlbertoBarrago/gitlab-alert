@@ -32,12 +32,14 @@ public struct GitLabClient: GitLabAPI {
     ) async throws -> DashboardSnapshot {
         async let profile = fetchProfile()
         async let reviewRequested = fetchMergeRequests(query: ["reviewer_username": "me"], pageSize: options.pageSize)
+        async let assignedMergeRequests = fetchMergeRequests(query: ["assignee_username": "me"], pageSize: options.pageSize)
         async let authored = fetchMergeRequests(query: ["author_username": "me"], pageSize: options.pageSize)
         async let assignedIssues = fetchIssues(query: ["assignee_username": "me"], pageSize: options.pageSize)
         async let projects = fetchProjects(scope: scope, options: options)
 
         let resolvedProfile = try await profile
         let review = try await reviewRequested
+        let assigned = try await assignedMergeRequests
         let mine = try await authored
         let issues = try await assignedIssues
         let repositories = try await projects
@@ -45,7 +47,7 @@ public struct GitLabClient: GitLabAPI {
         return DashboardSnapshot(
             fetchedAt: clock(),
             profile: resolvedProfile,
-            reviewRequested: merge(review, relevance: .reviewRequested),
+            reviewRequested: merge(unique(review + assigned), relevance: .reviewRequested),
             authoredMergeRequests: merge(mine, relevance: .authored),
             assignedIssues: issues,
             repositories: repositories,
@@ -117,6 +119,13 @@ public struct GitLabClient: GitLabAPI {
             item.relevance.insert(relevance)
             return item
         }
+    }
+
+    /// A merge request can name the current user as both reviewer and assignee.
+    /// Keep one row and one activity event when the two GitLab queries overlap.
+    private func unique(_ items: [MergeRequestItem]) -> [MergeRequestItem] {
+        var seen = Set<String>()
+        return items.filter { seen.insert($0.id).inserted }
     }
 
     private func get<Payload: Decodable>(_ path: String, query: [String: String] = [:]) async throws -> Payload {

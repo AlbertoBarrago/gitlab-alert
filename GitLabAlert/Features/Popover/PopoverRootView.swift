@@ -299,7 +299,7 @@ struct PopoverRootView: View {
 
     private func emptyMessage(for section: DashboardSection) -> String {
         switch section {
-        case .reviewRequested: return "No reviews waiting on you"
+        case .reviewRequested: return "No merge requests need your attention"
         case .authoredMergeRequests: return "No open merge requests of yours"
         case .assignedIssues: return "Nothing assigned to you"
         case .inboundIssues: return "No inbound issues"

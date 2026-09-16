@@ -29,7 +29,7 @@ public enum DashboardSection: String, Sendable, Codable, Hashable, CaseIterable,
 
     public var title: String {
         switch self {
-        case .reviewRequested: return "Waiting on your review"
+        case .reviewRequested: return "Needs your attention"
         case .authoredMergeRequests: return "Your merge requests"
         case .assignedIssues: return "Assigned to you"
         case .inboundIssues: return "Inbound issues"
