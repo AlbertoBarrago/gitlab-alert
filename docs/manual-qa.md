@@ -27,7 +27,8 @@ Run against a real build: `bash bin/make-app.sh && open /Applications/GitLabAler
 - [ ] The glyph is legible in a light menu bar and in a dark one, and follows the system tint.
 - [ ] With items awaiting action, a count renders beside the glyph.
 - [ ] The count does not make the item jitter as digits change (monospaced digits).
-- [ ] An unread star/fork/CI event shows the accent dot; opening the popover clears it.
+- [ ] An unread repository event shows the accent dot; opening or expanding the popover does not clear it.
+- [ ] Its checkmark marks only that event as seen and the state survives relaunching the app.
 - [ ] Left click toggles the popover. Right click opens the menu with Refresh, Open, Settings, Quit.
 - [ ] Option-click forces an immediate refresh.
 - [ ] ⌘-dragging the item to a new position survives a relaunch (autosave).
@@ -116,7 +117,7 @@ These are not covered anywhere and are accepted for now:
 - Replacing an account clears cached history before verifying new credentials and silently seeds the next dashboard.
 - A notification opens its exact event in Recent activity for every event kind.
 - Failed state writes prevent notifications and leave the previous baseline intact.
-- Opening the popover persists read events; unread history is restored on relaunch.
+- Explicitly marking an event as seen persists it; unread history is restored on relaunch.
 - Real Keychain integration tests are skipped when the test runner has no unlocked login Keychain.
 - A signed diagnostic app with the release entitlements verified add/read/delete against the login Keychain; the Data Protection variant reproduced `errSecMissingEntitlement` and was removed.
 - Authenticated GitLab polling, notification delivery, sleep/wake, and multiple-display placement require manual verification.

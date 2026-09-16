@@ -17,6 +17,7 @@ struct ActivityRowView: View {
     var isSelected: Bool = false
     var indent: CGFloat = 8
     let open: () -> Void
+    var markSeen: (() -> Void)? = nil
 
     @State private var isHovering = false
 
@@ -59,7 +60,7 @@ struct ActivityRowView: View {
                 }
             }
             .padding(.leading, indent)
-            .padding(.trailing, 8)
+            .padding(.trailing, isUnread && markSeen != nil ? 38 : 8)
             .padding(.vertical, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
@@ -76,6 +77,21 @@ struct ActivityRowView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(accessibilityLabel))
         .accessibilityHint(Text(event.url == nil ? "Opens the activity list" : "Opens on GitLab"))
+        .overlay(alignment: .trailing) {
+            if isUnread, let markSeen {
+                Button(action: markSeen) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .padding(.trailing, 7)
+                .help("Mark as Seen")
+                .accessibilityLabel("Mark as Seen")
+            }
+        }
     }
 
     // MARK: - Pieces

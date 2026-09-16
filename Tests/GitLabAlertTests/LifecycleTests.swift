@@ -204,7 +204,7 @@ struct LifecycleTests {
         #expect(await recorder.events.isEmpty)
     }
 
-    @Test func openingPopoverPersistsReadEvents() async throws {
+    @Test func activityStaysUnreadUntilExplicitlyMarkedSeen() async throws {
         let api = ControlledAPI(), store = MemoryStore(), recorder = Recorder()
         let event = ActivityEvent(id: "unread", kind: .star, occurredAt: Date(), repository: "alice/repo")
         try store.save(PersistedState(lastSnapshot: snapshot(), activityLog: [event], hasBaseline: true))
@@ -214,6 +214,11 @@ struct LifecycleTests {
         app.restore(try #require(await poller.restoredOutcome))
         #expect(app.hasUnreadActivity)
         app.popoverDidOpen()
+        try await Task.sleep(for: .milliseconds(10))
+        #expect(!store.load().seenEventIDs.contains(event.id))
+        #expect(app.hasUnreadActivity)
+
+        app.markActivitySeen([event.id])
         try await eventually { store.load().seenEventIDs.contains(event.id) }
         #expect(!app.hasUnreadActivity)
         #expect(await poller.restoredOutcome?.freshEvents.isEmpty == true)

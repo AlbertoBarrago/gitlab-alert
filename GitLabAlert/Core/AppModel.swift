@@ -184,7 +184,6 @@ final class AppModel {
     }
 
     func popoverDidOpen() {
-        markActivitySeen()
         Task { [weak self] in await self?.scheduler?.setPopoverOpen(true) }
     }
 
@@ -192,11 +191,13 @@ final class AppModel {
         Task { [weak self] in await self?.scheduler?.setPopoverOpen(false) }
     }
 
-    /// Marks the activity the user has now seen, so a relaunch does not replay it.
-    func markActivitySeen() {
-        let ids = activityLog.map(\.id)
-        unreadEventIDs.removeAll()
-        Task { [weak self] in await self?.scheduler?.markEventsSeen(ids) }
+    /// Marks only explicitly acknowledged activity as seen. GitLab owns the
+    /// remote item's lifecycle; this state controls only our local unread UI.
+    func markActivitySeen(_ ids: Set<String>) {
+        let seen = ids.intersection(unreadEventIDs)
+        guard !seen.isEmpty else { return }
+        unreadEventIDs.subtract(seen)
+        Task { [weak self] in await self?.scheduler?.markEventsSeen(Array(seen)) }
     }
 
     /// Verifies and stores a pasted token. Returns nothing: the result lands in

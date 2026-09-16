@@ -189,7 +189,7 @@ struct DetailListView: View {
             }
             .width(min: 90, ideal: 110)
         }
-        .modifier(DetailTableChrome(rows: rows, open: open, reveal: onRevealRepository))
+        .modifier(tableChrome)
     }
 
     private var issueTable: some View {
@@ -224,7 +224,7 @@ struct DetailListView: View {
             }
             .width(min: 90, ideal: 110)
         }
-        .modifier(DetailTableChrome(rows: rows, open: open, reveal: onRevealRepository))
+        .modifier(tableChrome)
     }
 
     private var repositoryTable: some View {
@@ -264,7 +264,7 @@ struct DetailListView: View {
             }
             .width(min: 90, ideal: 110)
         }
-        .modifier(DetailTableChrome(rows: rows, open: open, reveal: onRevealRepository))
+        .modifier(tableChrome)
     }
 
     private var activityTable: some View {
@@ -294,7 +294,7 @@ struct DetailListView: View {
             }
             .width(min: 90, ideal: 110)
         }
-        .modifier(DetailTableChrome(rows: rows, open: open, reveal: onRevealRepository))
+        .modifier(tableChrome)
     }
 
     /// One repository, everything about it: its own row, its open work, its
@@ -326,7 +326,7 @@ struct DetailListView: View {
             }
             .width(min: 90, ideal: 110)
         }
-        .modifier(DetailTableChrome(rows: rows, open: open, reveal: onRevealRepository))
+        .modifier(tableChrome)
     }
 
     // MARK: - Cells
@@ -463,6 +463,15 @@ struct DetailListView: View {
         }
     }
 
+    private var tableChrome: DetailTableChrome {
+        DetailTableChrome(
+            rows: rows,
+            open: open,
+            reveal: onRevealRepository,
+            markSeen: { ids in model.markActivitySeen(ids) }
+        )
+    }
+
     // MARK: - Empty states
 
     /// Never a blank pane: every reason the table has no rows has its own
@@ -547,6 +556,7 @@ private struct DetailTableChrome: ViewModifier {
     let rows: [DetailRow]
     let open: (Set<DetailRow.ID>) -> Void
     let reveal: (String) -> Void
+    let markSeen: (Set<DetailRow.ID>) -> Void
 
     func body(content: Content) -> some View {
         content
@@ -555,6 +565,10 @@ private struct DetailTableChrome: ViewModifier {
             .contextMenu(forSelectionType: DetailRow.ID.self) { ids in
                 Button("Open on GitLab") { open(ids) }
                     .disabled(ids.isEmpty)
+                let unreadIDs = Set(rows.lazy.filter { ids.contains($0.id) && $0.isUnread }.map(\.id))
+                if !unreadIDs.isEmpty {
+                    Button("Mark as Seen") { markSeen(unreadIDs) }
+                }
                 if ids.count == 1,
                    let row = rows.first(where: { ids.contains($0.id) }),
                    row.kind != .repository {

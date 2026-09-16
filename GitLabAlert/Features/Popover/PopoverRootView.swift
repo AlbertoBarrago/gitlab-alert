@@ -263,6 +263,8 @@ struct PopoverRootView: View {
                     isSelected: selection == event.id
                 ) {
                     model.openOnGitLab(event.url)
+                } markSeen: {
+                    model.markActivitySeen([event.id])
                 }
                 .id(event.id)
             }
@@ -335,7 +337,6 @@ struct PopoverRootView: View {
             if opened.count == 2 { break }
         }
         expanded = opened
-        if opened.contains(.activity) { model.markActivitySeen() }
     }
 
     private func toggle(_ section: DashboardSection) {
@@ -344,7 +345,6 @@ struct PopoverRootView: View {
                 expanded.remove(section)
             } else {
                 expanded.insert(section)
-                if section == .activity { model.markActivitySeen() }
             }
         }
         selection = section.id
