@@ -120,9 +120,9 @@ ditto -c -k --sequesterRsrc --keepParent "${APP}" "${ZIP}"
 
 # NOT notarized, and deliberately so: notarization needs a paid Developer ID,
 # and this is a build-from-source tool. Anyone else downloading the zip has to
-# right-click → Open on first launch, or build it themselves.
+# use Privacy & Security → Open Anyway after the first blocked launch.
 echo ""
 echo "▶ Done → ${DMG}"
 echo "          ${ZIP}"
 echo "   Signed with: ${CERT}"
-echo "   Not notarized: first launch on another Mac needs right-click → Open."
+echo "   Not notarized: after the first blocked launch use Privacy & Security → Open Anyway."

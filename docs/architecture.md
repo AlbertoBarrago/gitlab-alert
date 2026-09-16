@@ -167,5 +167,5 @@ the previous account.
 Stable code signing matters even for local builds because Keychain ACLs and
 notification grants are tied to the app's designated requirement. Release
 packages use the project's stable self-signed identity. They are signed and
-verified but not Apple-notarized, so another Mac requires an explicit
-Control-click or right-click **Open** on first launch.
+verified but not Apple-notarized. After the first blocked launch, another Mac
+must approve the app with **Privacy & Security → Open Anyway**.

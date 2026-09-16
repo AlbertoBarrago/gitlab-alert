@@ -34,15 +34,17 @@ and shell scripts. You do need the macOS command line tools, which provide
 
 ### Install a release without a certificate
 
-Download `GitLabAlert-0.1.1.dmg` from the
+Download `GitLabAlert-0.1.2.dmg` from the
 [latest GitHub release](https://github.com/AlbertoBarrago/gitlab-alert/releases/latest),
 open it and drag `GitLabAlert.app` onto the Applications shortcut. You do not
 need an Apple Developer account or your own signing certificate. A ZIP is also
 available as a fallback.
 
-The app is not notarized, so macOS requires one explicit first launch: in
-Finder, Control-click or right-click `GitLabAlert.app`, choose **Open**, then
-confirm. After that, launch it normally from Applications or Spotlight.
+The app is not notarized. First try to open it from Applications so macOS
+records the blocked launch. Then open **System Settings → Privacy & Security**,
+scroll to Security, click **Open Anyway**, authenticate and confirm **Open**.
+macOS saves that exception; later launches work normally. No Terminal script or
+removal of the quarantine attribute is required.
 
 ### Build from source
 
