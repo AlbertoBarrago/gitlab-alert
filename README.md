@@ -162,14 +162,37 @@ Resources/           loose resources, read through Bundle.main
 
 ## Release
 
+Publishing is driven by a tag. Bump `CFBundleShortVersionString` in `Info.plist`
+(and the download links in `README.md` and `index.html`), then:
+
+```sh
+git tag v0.1.5 && git push origin v0.1.5
+```
+
+`.github/workflows/release-macos.yml` runs the tests, builds, signs, packages the
+DMG and the ZIP, and publishes them to a GitHub release together with
+`SHA256SUMS.txt`. It refuses to run if the tag and `Info.plist` disagree, or if
+the signing identity is missing: a release is never ad-hoc signed.
+
+The workflow needs two repository secrets, exported once from `bin/.signing`:
+
+| Secret | Value |
+| --- | --- |
+| `SIGNING_CERTIFICATE_P12_BASE64` | `base64 -i bin/.signing/GitLabAlert-signing.p12` |
+| `SIGNING_CERTIFICATE_PASSWORD` | the contents of `bin/.signing/passphrase.txt` |
+
+To build the same artifacts locally:
+
 ```sh
 bash bin/make-release.sh
 ```
 
 This runs the tests, builds Release, assembles and signs the bundle, then writes
-`dist/GitLabAlert-<version>.dmg` and `dist/GitLabAlert-<version>.zip`. It mounts
-the DMG to verify its contents and the embedded app signature, and refuses to
-create a release with an ad-hoc signature.
+`dist/GitLabAlert-<version>.dmg`, `dist/GitLabAlert-<version>.zip` and
+`dist/SHA256SUMS.txt`. It mounts the DMG to verify its contents and the embedded
+app signature, and refuses to create a release with an ad-hoc signature. Locally
+it assembles into `/Applications`, so a release build is also an install; `APP_DIR`
+overrides that, which is how the workflow keeps the runner out of the way.
 
 ## License
 

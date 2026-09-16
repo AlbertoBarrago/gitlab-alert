@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Logic tests
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Show toolchain
+        run: swift --version
+
+      # No signing, no GUI, no Xcode project: bin/test.sh runs both the
+      # GitLabKit package and the app target's lifecycle tests.
+      - name: Run tests
+        run: bash bin/test.sh
+
+      # A release build is the only thing that catches @MainActor and
+      # availability problems the debug test build lets through.
+      - name: Build release binary
+        run: swift build -c release
