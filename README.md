@@ -16,6 +16,9 @@ only notifies you when tracked work or pipeline state changes.
 **[Visit the product page](https://albz.it/gitlab-alert/)** for
 the quickest overview and installation guide.
 
+GitLab Alert is free. If it earns a place in your menu bar,
+**[leave it a star](https://github.com/AlbertoBarrago/gitlab-alert)**. ⭐
+
 **Status:** under active development. Prebuilt releases are signed but not
 Apple-notarized; see the installation steps below before the first launch.
 

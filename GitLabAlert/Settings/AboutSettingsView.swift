@@ -32,6 +32,13 @@ struct AboutSettingsView: View {
                 Link("Report an issue", destination: Self.issuesURL)
             }
 
+            Section("A tiny favor") {
+                Link(destination: Self.repositoryURL) {
+                    Label("Star GitLab Alert on GitHub", systemImage: "star")
+                }
+                SettingsFootnote("GitLab Alert is yours for free. If it earns a place in your menu bar, leave it a star.")
+            }
+
             Section("License") {
                 LabeledContent("License", value: "MIT")
                 SettingsFootnote("GitLab Alert is released under the MIT license.")
