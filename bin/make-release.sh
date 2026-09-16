@@ -19,8 +19,14 @@ DIST="${DIST:-dist}"
 # notification grant are pinned to it, and ad-hoc's changes on every build.
 # `security find-identity -v` lists revoked certs as valid from a stale OCSP
 # cache, so candidates are probed by actually signing and verifying.
-CERT=""
-if security find-identity -v -p codesigning 2>/dev/null | grep -q "${SIGNING_CN}"; then
+# An explicit identity, when the caller already knows which one to use. CI
+# imports the certificate into a throwaway keychain where it is unavoidably
+# untrusted, so `find-identity -v` would report nothing: the SHA-1 of the
+# imported identity is passed in instead, and codesign is happy to sign with it.
+CERT="${SIGNING_IDENTITY:-}"
+if [ -n "${CERT}" ]; then
+    echo "▶ Using the identity supplied in SIGNING_IDENTITY."
+elif security find-identity -v -p codesigning 2>/dev/null | grep -q "${SIGNING_CN}"; then
     CERT="${SIGNING_CN}"
 else
     for CANDIDATE in $(security find-identity -v -p codesigning 2>/dev/null \

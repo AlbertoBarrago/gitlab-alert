@@ -17,6 +17,9 @@ jobs:
   release:
     name: Build, sign and publish
     runs-on: macos-26
+    # Nothing here legitimately takes this long. Without a cap, a step waiting
+    # on something that never arrives runs for six hours.
+    timeout-minutes: 30
 
     steps:
       - name: Resolve target tag
@@ -82,16 +85,6 @@ jobs:
           security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" \
             -P "${CERT_PASSWORD}" -T /usr/bin/codesign -T /usr/bin/security
 
-          # Importing a self-signed identity does not make it valid: without a
-          # trust setting `find-identity -v` reports zero identities and the
-          # build falls back to nothing. Trust is constrained to code signing,
-          # exactly as bin/make-signing-cert.sh does on the maintainer's Mac.
-          openssl pkcs12 -in "$RUNNER_TEMP/cert.p12" -legacy -clcerts -nokeys \
-            -passin "pass:${CERT_PASSWORD}" -out "$RUNNER_TEMP/cert.pem"
-          security add-trusted-cert -r trustRoot -p codeSign \
-            -k "$KEYCHAIN" "$RUNNER_TEMP/cert.pem"
-          rm -f "$RUNNER_TEMP/cert.pem"
-
           # Let codesign use the private key without an interactive prompt.
           security set-key-partition-list -S apple-tool:,apple:,codesign: \
             -s -k "$KEYCHAIN_PASS" "$KEYCHAIN" >/dev/null
@@ -99,14 +92,22 @@ jobs:
           # Make the keychain visible to codesign's identity search.
           security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
           security default-keychain -s "$KEYCHAIN"
-          # find-identity exits 0 even when it finds nothing, so assert here
-          # rather than discovering it three steps later inside the packaging
-          # script's identity probe.
-          if ! security find-identity -v -p codesigning "$KEYCHAIN" | grep -q "GitLab Alert Signing"; then
-            echo "::error::The imported certificate is not a valid codesigning identity."
-            security find-identity -v -p codesigning "$KEYCHAIN"
+          # A self-signed certificate in a fresh keychain is untrusted, so
+          # `find-identity -v` reports nothing. Making it trusted means writing
+          # trust settings, which raises an authorization prompt the runner can
+          # never answer: the step hangs instead of failing. Read the SHA-1 out
+          # of the full identity list and hand it to codesign directly, which
+          # does not care about trust. Nothing on the runner is mutated beyond
+          # the throwaway keychain.
+          FINGERPRINT=$(security find-identity -p codesigning "$KEYCHAIN" \
+            | awk -F'"' '/GitLab Alert Signing/ { print $0 }' \
+            | awk '{ print $2 }' | head -1)
+          if [ -z "$FINGERPRINT" ]; then
+            echo "::error::The imported certificate is not a codesigning identity."
+            security find-identity -p codesigning "$KEYCHAIN"
             exit 1
           fi
+          echo "SIGNING_IDENTITY=${FINGERPRINT}" >> "$GITHUB_ENV"
 
           rm -f "$RUNNER_TEMP/cert.p12"
 
