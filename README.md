@@ -13,7 +13,7 @@ GitLab Alert works with GitLab.com and self-managed GitLab instances. It polls
 in the background, retains the last successful dashboard while offline, and
 only notifies you when tracked work or pipeline state changes.
 
-**[Visit the product page](https://albertobarrago.github.io/gitlab-alert/)** for
+**[Visit the product page](https://albz.it/gitlab-alert/)** for
 the quickest overview and installation guide.
 
 **Status:** under active development. Prebuilt releases are signed but not
