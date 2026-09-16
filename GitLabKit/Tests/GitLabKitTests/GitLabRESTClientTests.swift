@@ -40,6 +40,38 @@ import Testing
     #expect(snapshot.reviewRequested.first?.relevance.contains(.reviewRequested) == true)
 }
 
+@Test func dashboardDecodesStarsAndForkFlagFromTheFullProjectPayload() async throws {
+    let http = ProjectDetailHTTPClient()
+    let client = GitLabClient(httpClient: http, tokenStore: StaticTokenStore(token: "glpat-secret"))
+
+    let snapshot = try await client.fetchDashboard(
+        scope: RepositoryScope(includeForks: true, activeWithinDays: nil),
+        options: DashboardRequestOptions(pageSize: 25, pipelineConcurrency: 1)
+    )
+
+    // `simple=true` would strip both fields from the response.
+    #expect(await http.projectQuery["simple"] == nil)
+    let fork = try #require(snapshot.repositories.first { $0.nameWithOwner == "alice/forked" })
+    #expect(fork.isFork)
+    #expect(fork.stargazerCount == 7)
+    let plain = try #require(snapshot.repositories.first { $0.nameWithOwner == "alice/plain" })
+    #expect(!plain.isFork)
+    #expect(plain.stargazerCount == 3)
+}
+
+@Test func dashboardAppliesTheForkRuleBeforeAskingForPipelines() async throws {
+    let http = ProjectDetailHTTPClient()
+    let client = GitLabClient(httpClient: http, tokenStore: StaticTokenStore(token: "glpat-secret"))
+
+    let snapshot = try await client.fetchDashboard(
+        scope: RepositoryScope(includeForks: false, activeWithinDays: nil),
+        options: DashboardRequestOptions(pageSize: 25, pipelineConcurrency: 1)
+    )
+
+    #expect(snapshot.repositories.map(\.nameWithOwner) == ["alice/plain"])
+    #expect(await http.pipelineProjectIDs == [1])
+}
+
 @Test func dashboardHonorsPipelineConcurrencyLimit() async throws {
     let http = PipelineConcurrencyHTTPClient(projectCount: 5)
     let client = GitLabClient(httpClient: http, tokenStore: StaticTokenStore(token: "glpat-secret"))
@@ -140,6 +172,39 @@ private actor PipelineConcurrencyHTTPClient: HTTPClient {
             maximumConcurrentPipelineRequests = max(maximumConcurrentPipelineRequests, currentPipelineRequests)
             try await Task.sleep(for: .milliseconds(10))
             currentPipelineRequests -= 1
+            return response("[]")
+        }
+    }
+}
+
+private actor ProjectDetailHTTPClient: HTTPClient {
+    private(set) var projectQuery: [String: String] = [:]
+    private(set) var pipelineProjectIDs: [Int] = []
+
+    func send(_ request: URLRequest) async throws -> HTTPResponse {
+        let url = try #require(request.url)
+        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        let path = components.path
+
+        switch path {
+        case "/api/v4/user":
+            return response(#"{"username":"alice","web_url":"https://gitlab.com/alice"}"#)
+        case "/api/v4/merge_requests", "/api/v4/issues":
+            return response("[]")
+        case "/api/v4/projects":
+            projectQuery = Dictionary(
+                (components.queryItems ?? []).map { ($0.name, $0.value ?? "") },
+                uniquingKeysWith: { current, _ in current }
+            )
+            let plain = #"{"id":1,"path_with_namespace":"alice/plain","visibility":"public","star_count":3,"forks_count":1,"web_url":"https://gitlab.com/alice/plain"}"#
+            let forked = #"{"id":2,"path_with_namespace":"alice/forked","visibility":"public","star_count":7,"forked_from_project":{"id":99},"web_url":"https://gitlab.com/alice/forked"}"#
+            return response("[\(plain),\(forked)]")
+        default:
+            guard path.hasPrefix("/api/v4/projects/"), path.hasSuffix("/pipelines"),
+                  let id = Int(path.split(separator: "/")[3]) else {
+                throw GitLabError.transport("Unexpected request: \(path)")
+            }
+            pipelineProjectIDs.append(id)
             return response("[]")
         }
     }
