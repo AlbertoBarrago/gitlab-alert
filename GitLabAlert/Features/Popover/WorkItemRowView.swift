@@ -28,9 +28,11 @@ struct WorkItemRowView: View {
 
     let item: Item
     var isSelected: Bool = false
+    var isUnread: Bool = false
     /// Lines the text up under the section title above it.
     var indent: CGFloat = 24
     let open: () -> Void
+    var markSeen: (() -> Void)? = nil
 
     @State private var isHovering = false
 
@@ -73,7 +75,7 @@ struct WorkItemRowView: View {
                 }
             }
             .padding(.leading, indent)
-            .padding(.trailing, 8)
+            .padding(.trailing, isUnread && markSeen != nil ? 38 : 8)
             .padding(.vertical, 5)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
@@ -87,6 +89,20 @@ struct WorkItemRowView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(accessibilityLabel))
         .accessibilityHint(Text("Opens on GitLab"))
+        .overlay(alignment: .trailing) {
+            if isUnread, let markSeen {
+                Button(action: markSeen) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.borderless)
+                .padding(.trailing, 7)
+                .help("Mark as Seen")
+                .accessibilityLabel("Mark repository alert as seen")
+            }
+        }
     }
 
     private var backgroundFill: Color {
@@ -97,6 +113,7 @@ struct WorkItemRowView: View {
 
     private var accessibilityLabel: String {
         var parts = [item.title, item.repository]
+        if isUnread { parts.insert("Unread", at: 0) }
         if let number = item.number { parts.append("number \(number)") }
         if let badge = item.badge { parts.append(badge.text) }
         parts.append(RelativeDateText.string(for: item.date, now: Date(), style: .phrase))

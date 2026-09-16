@@ -85,7 +85,7 @@ struct DetailRootView: View {
             refreshTick: model.refreshTick,
             fetchedAt: model.snapshot?.fetchedAt,
             activityCount: model.activityLog.count,
-            unreadCount: model.unreadEventIDs.count
+            unreadCount: model.unreadEventIDs.count + model.seenRepositoryAlertIDs.count
         )
     }
 
@@ -115,7 +115,14 @@ struct DetailRootView: View {
             snapshot: model.snapshot,
             activityLog: model.activityLog,
             unreadEventIDs: model.unreadEventIDs
-        )
+        ).map { row in
+            var row = row
+            if row.kind == .repository,
+               let repository = model.repositories.first(where: { $0.nameWithOwner == row.repository }) {
+                row.isUnread = model.isRepositoryAlertUnread(repository)
+            }
+            return row
+        }
         rowsVersion += 1
         resolvePendingSelection()
         // A refresh can drop the row that was selected; leaving a stale id

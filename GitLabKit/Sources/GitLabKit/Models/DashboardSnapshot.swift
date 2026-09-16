@@ -43,3 +43,11 @@ public struct DashboardSnapshot: Sendable, Codable, Hashable {
     }
 
 }
+
+public extension RepoSnapshot {
+    /// Identifies one continuous broken state. The scheduler removes this key
+    /// after recovery, so a later failure becomes unread again.
+    var repositoryAlertID: String {
+        "repository-alert|\(nameWithOwner)|\(checkState.rawValue)"
+    }
+}

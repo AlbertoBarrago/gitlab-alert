@@ -29,6 +29,7 @@ Run against a real build: `bash bin/make-app.sh && open /Applications/GitLabAler
 - [ ] The count does not make the item jitter as digits change (monospaced digits).
 - [ ] An unread repository event shows the accent dot; opening or expanding the popover does not clear it.
 - [ ] Its checkmark marks only that event as seen and the state survives relaunching the app.
+- [ ] A failing repository exposes its own checkmark; acknowledging it keeps the failing state visible but removes its unread action until the pipeline recovers and fails again.
 - [ ] Left click toggles the popover. Right click opens the menu with Refresh, Open, Settings, Quit.
 - [ ] Option-click forces an immediate refresh.
 - [ ] ⌘-dragging the item to a new position survives a relaunch (autosave).

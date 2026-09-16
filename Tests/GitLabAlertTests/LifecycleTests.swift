@@ -224,6 +224,27 @@ struct LifecycleTests {
         #expect(await poller.restoredOutcome?.freshEvents.isEmpty == true)
     }
 
+    @Test func brokenRepositoryStaysUnreadUntilExplicitlyMarkedSeen() async throws {
+        let api = ControlledAPI(), store = MemoryStore(), recorder = Recorder()
+        let repository = RepoSnapshot(
+            nameWithOwner: "alice/repo",
+            checkState: .failure,
+            url: URL(string: "https://gitlab.com/alice/repo")!
+        )
+        var storedSnapshot = snapshot()
+        storedSnapshot.repositories = [repository]
+        try store.save(PersistedState(lastSnapshot: storedSnapshot, hasBaseline: true))
+        let poller = scheduler(api: api, store: store, recorder: recorder)
+        let app = model(api: api, store: store)
+        app.attach(scheduler: poller)
+        app.restore(try #require(await poller.restoredOutcome))
+
+        #expect(app.isRepositoryAlertUnread(repository))
+        app.markRepositoryAlertsSeen([repository])
+        try await eventually { store.load().seenEventIDs.contains(repository.repositoryAlertID) }
+        #expect(!app.isRepositoryAlertUnread(repository))
+    }
+
     @Test func missingTokenDoesNotRestoreAnotherAccountsSnapshot() async throws {
         let api = ControlledAPI(), store = MemoryStore(), recorder = Recorder()
         try store.deleteToken()

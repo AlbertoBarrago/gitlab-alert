@@ -468,7 +468,11 @@ struct DetailListView: View {
             rows: rows,
             open: open,
             reveal: onRevealRepository,
-            markSeen: { ids in model.markActivitySeen(ids) }
+            markSeen: { ids in
+                model.markActivitySeen(ids)
+                let names = Set(rows.filter { ids.contains($0.id) && $0.kind == .repository }.map(\.repository))
+                model.markRepositoryAlertsSeen(model.repositories.filter { names.contains($0.nameWithOwner) })
+            }
         )
     }
 

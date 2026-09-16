@@ -25,6 +25,7 @@ struct PollOutcome: Sendable {
     var freshEvents: [ActivityEvent]
     /// The whole capped activity log, newest first.
     var activityLog: [ActivityEvent]
+    var seenRepositoryAlertIDs: Set<String> = []
     var rateLimit: RateLimitStatus?
 }
 
@@ -129,6 +130,9 @@ actor PollScheduler {
             snapshot: snapshot,
             freshEvents: state.activityLog.filter { !state.seenEventIDs.contains($0.id) },
             activityLog: state.activityLog,
+            seenRepositoryAlertIDs: state.seenEventIDs.intersection(
+                state.lastSnapshot?.brokenRepositories.map(\.repositoryAlertID) ?? []
+            ),
             rateLimit: snapshot.rateLimit
         )
     }
@@ -305,6 +309,10 @@ actor PollScheduler {
             // One write for events and watermarks together. A torn write here is
             // exactly the duplicate-notification bug — see ADR 0007.
             var nextState = state
+            let currentRepositoryAlerts = Set(snapshot.brokenRepositories.map(\.repositoryAlertID))
+            nextState.seenEventIDs = nextState.seenEventIDs.filter {
+                !$0.hasPrefix("repository-alert|") || currentRepositoryAlerts.contains($0)
+            }
             nextState.watermarks = result.watermarks
             nextState.lastSnapshot = snapshot
             nextState.hasBaseline = true
@@ -327,6 +335,7 @@ actor PollScheduler {
                     snapshot: snapshot,
                     freshEvents: fresh,
                     activityLog: state.activityLog,
+                    seenRepositoryAlertIDs: state.seenEventIDs.intersection(currentRepositoryAlerts),
                     rateLimit: snapshot.rateLimit
                 )
             )

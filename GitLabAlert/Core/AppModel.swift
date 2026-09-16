@@ -36,6 +36,7 @@ final class AppModel {
     private(set) var snapshot: DashboardSnapshot?
     private(set) var activityLog: [ActivityEvent] = []
     private(set) var unreadEventIDs: Set<String> = []
+    private(set) var seenRepositoryAlertIDs: Set<String> = []
     private(set) var isLoading = false
     private(set) var lastError: GitLabError?
     private(set) var lastFetch: Date?
@@ -145,6 +146,10 @@ final class AppModel {
     var repositories: [RepoSnapshot] { snapshot?.repositories ?? [] }
     var brokenRepositories: [RepoSnapshot] { snapshot?.brokenRepositories ?? [] }
 
+    func isRepositoryAlertUnread(_ repository: RepoSnapshot) -> Bool {
+        repository.checkState.isBroken && !seenRepositoryAlertIDs.contains(repository.repositoryAlertID)
+    }
+
     func count(for section: DashboardSection) -> Int {
         switch section {
         case .reviewRequested: return reviewRequested.count
@@ -198,6 +203,14 @@ final class AppModel {
         guard !seen.isEmpty else { return }
         unreadEventIDs.subtract(seen)
         Task { [weak self] in await self?.scheduler?.markEventsSeen(Array(seen)) }
+    }
+
+    func markRepositoryAlertsSeen(_ repositories: [RepoSnapshot]) {
+        let ids = Set(repositories.filter { $0.checkState.isBroken }.map(\.repositoryAlertID))
+            .subtracting(seenRepositoryAlertIDs)
+        guard !ids.isEmpty else { return }
+        seenRepositoryAlertIDs.formUnion(ids)
+        Task { [weak self] in await self?.scheduler?.markEventsSeen(Array(ids)) }
     }
 
     /// Verifies and stores a pasted token. Returns nothing: the result lands in
@@ -332,6 +345,7 @@ final class AppModel {
         snapshot = nil
         activityLog = []
         unreadEventIDs = []
+        seenRepositoryAlertIDs = []
         pendingSelection = nil
         lastFetch = nil
         lastError = nil
@@ -425,6 +439,7 @@ final class AppModel {
         guard !isChangingAccount, authState.isReady || authState == .verifying else { return }
         snapshot = outcome.snapshot
         activityLog = outcome.activityLog
+        seenRepositoryAlertIDs = outcome.seenRepositoryAlertIDs
         rateLimit = outcome.rateLimit ?? rateLimit
         lastFetch = outcome.snapshot.fetchedAt
         lastError = nil
@@ -445,6 +460,7 @@ final class AppModel {
         guard !isChangingAccount, authState == .verifying, snapshot == nil else { return }
         snapshot = outcome.snapshot
         activityLog = outcome.activityLog
+        seenRepositoryAlertIDs = outcome.seenRepositoryAlertIDs
         unreadEventIDs = Set(outcome.freshEvents.map(\.id))
         rateLimit = outcome.rateLimit
         lastFetch = outcome.snapshot.fetchedAt

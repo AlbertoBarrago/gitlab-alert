@@ -268,6 +268,20 @@ struct PopoverRootView: View {
                 }
                 .id(event.id)
             }
+        case .repositories:
+            ForEach(Array(model.brokenRepositories.prefix(visibleLimit))) { repository in
+                let item = WorkItemRowView.Item(repository: repository)
+                WorkItemRowView(
+                    item: item,
+                    isSelected: selection == item.id,
+                    isUnread: model.isRepositoryAlertUnread(repository)
+                ) {
+                    model.openOnGitLab(item.url)
+                } markSeen: {
+                    model.markRepositoryAlertsSeen([repository])
+                }
+                .id(item.id)
+            }
         default:
             ForEach(items(for: section)) { item in
                 WorkItemRowView(item: item, isSelected: selection == item.id) {
