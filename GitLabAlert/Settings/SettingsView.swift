@@ -57,6 +57,7 @@ struct SettingsView: View {
             .listStyle(.sidebar)
             .navigationTitle("GitLab Alert")
             .frame(minWidth: 180, idealWidth: 200)
+            .toolbar(removing: .sidebarToggle)
         } detail: {
             selectedPane
                 .navigationTitle(tab.title)

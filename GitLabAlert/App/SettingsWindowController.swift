@@ -22,7 +22,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         // The sidebar keeps the four areas visible at once; the detail pane
         // still needs enough width for the repository picker and its filters.
         window.contentMinSize = NSSize(width: 700, height: 500)
-        window.toolbarStyle = .unifiedCompact
         window.contentViewController = NSHostingController(rootView: content)
         window.isReleasedWhenClosed = false
         window.setFrameAutosaveName("GitLabAlertSettingsWindow")
