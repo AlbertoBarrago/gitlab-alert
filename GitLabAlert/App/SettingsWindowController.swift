@@ -13,15 +13,16 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     convenience init<Content: View>(content: Content) {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 560, height: 460),
+            contentRect: NSRect(x: 0, y: 0, width: 760, height: 540),
             styleMask: [.titled, .closable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "GitLab Alert Settings"
-        // Resizable upward, but never smaller than the forms need: the
-        // repository picker is unusable in a short window.
-        window.contentMinSize = NSSize(width: 560, height: 460)
+        // The sidebar keeps the four areas visible at once; the detail pane
+        // still needs enough width for the repository picker and its filters.
+        window.contentMinSize = NSSize(width: 700, height: 500)
+        window.toolbarStyle = .unifiedCompact
         window.contentViewController = NSHostingController(rootView: content)
         window.isReleasedWhenClosed = false
         window.setFrameAutosaveName("GitLabAlertSettingsWindow")

@@ -44,24 +44,23 @@ struct SettingsView: View {
     @State private var tab: SettingsTab = .general
 
     var body: some View {
-        TabView(selection: $tab) {
-            GeneralSettingsView(model: model)
-                .tabItem { Label(SettingsTab.general.title, systemImage: SettingsTab.general.symbolName) }
-                .tag(SettingsTab.general)
-
-            AccountSettingsView(model: model)
-                .tabItem { Label(SettingsTab.account.title, systemImage: SettingsTab.account.symbolName) }
-                .tag(SettingsTab.account)
-
-            NotificationSettingsView(model: model)
-                .tabItem { Label(SettingsTab.notifications.title, systemImage: SettingsTab.notifications.symbolName) }
-                .tag(SettingsTab.notifications)
-
-            RepositoryPickerView(model: model)
-                .tabItem { Label(SettingsTab.repositories.title, systemImage: SettingsTab.repositories.symbolName) }
-                .tag(SettingsTab.repositories)
+        NavigationSplitView {
+            List(selection: $tab) {
+                ForEach(SettingsTab.allCases) { item in
+                    Label(item.title, systemImage: item.symbolName)
+                        .tag(item)
+                }
+            }
+            .listStyle(.sidebar)
+            .navigationTitle("GitLab Alert")
+            .frame(minWidth: 180, idealWidth: 200)
+        } detail: {
+            selectedPane
+                .navigationTitle(tab.title)
+                .frame(minWidth: 500)
         }
-        .frame(minWidth: 560, minHeight: 460)
+        .navigationSplitViewStyle(.balanced)
+        .frame(minWidth: 700, minHeight: 500)
         .onAppear {
             // Nothing else in Settings works without a token, so an app that
             // has none opens on the one tab that can fix that. `.verifying` is
@@ -80,6 +79,20 @@ struct SettingsView: View {
             if case .rejected = state {
                 tab = .account
             }
+        }
+    }
+
+    @ViewBuilder
+    private var selectedPane: some View {
+        switch tab {
+        case .general:
+            GeneralSettingsView(model: model)
+        case .account:
+            AccountSettingsView(model: model)
+        case .notifications:
+            NotificationSettingsView(model: model)
+        case .repositories:
+            RepositoryPickerView(model: model)
         }
     }
 }

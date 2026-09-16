@@ -11,6 +11,8 @@ final class PopoverController: NSObject, NSPopoverDelegate {
     private var escapeMonitor: Any?
     private weak var anchor: NSView?
     private var detachedAnchorWindow: NSWindow?
+    private var pendingContentHeight: CGFloat?
+    private var resizeWorkItem: DispatchWorkItem?
 
     var onOpen: (() -> Void)?
     var onClose: (() -> Void)?
@@ -68,15 +70,28 @@ final class PopoverController: NSObject, NSPopoverDelegate {
         popover.performClose(nil)
     }
 
-    /// Animates a height change so an expanding section grows the panel instead
-    /// of clipping. Width is deliberately fixed.
+    /// Coalesces SwiftUI's intermediate layout passes into one resize. Without
+    /// this, a first dashboard load can visibly step through several heights
+    /// while independent views finish measuring.
     func setContentHeight(_ height: CGFloat) {
         let clamped = min(max(height, 160), maximumHeight)
-        guard abs(popover.contentSize.height - clamped) > 0.5 else { return }
+        guard abs((pendingContentHeight ?? popover.contentSize.height) - clamped) > 0.5 else { return }
+        pendingContentHeight = clamped
+        resizeWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in self?.applyPendingContentHeight() }
+        resizeWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: workItem)
+    }
+
+    private func applyPendingContentHeight() {
+        guard let height = pendingContentHeight else { return }
+        pendingContentHeight = nil
+        resizeWorkItem = nil
+        guard abs(popover.contentSize.height - height) > 0.5 else { return }
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.18
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            popover.contentSize = NSSize(width: Self.contentWidth, height: clamped)
+            popover.contentSize = NSSize(width: Self.contentWidth, height: height)
         }
     }
 
