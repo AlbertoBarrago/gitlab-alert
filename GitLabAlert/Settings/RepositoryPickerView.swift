@@ -365,24 +365,30 @@ struct RepositoryPickerView: View {
     // MARK: - Rule editor
 
     private var ruleEditor: some View {
-        Form {
-            Section("Watch by default") {
-                Toggle("Include private repositories", isOn: scopeBinding(\.includePrivate))
-                Toggle("Include forks", isOn: scopeBinding(\.includeForks))
-                Picker("Pushed within", selection: scopeBinding(\.activeWithinDays)) {
-                    Text("30 days").tag(Optional(30))
-                    Text("90 days").tag(Optional(90))
-                    Text("6 months").tag(Optional(180))
-                    Text("1 year").tag(Optional(365))
-                    Text("Any time").tag(Optional<Int>.none)
-                }
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Watch by default")
+                .font(.headline)
+
+            Toggle("Include private repositories", isOn: scopeBinding(\.includePrivate))
+            Toggle("Include forks", isOn: scopeBinding(\.includeForks))
+
+            Picker("Pushed within", selection: scopeBinding(\.activeWithinDays)) {
+                Text("30 days").tag(Optional(30))
+                Text("90 days").tag(Optional(90))
+                Text("6 months").tag(Optional(180))
+                Text("1 year").tag(Optional(365))
+                Text("Any time").tag(Optional<Int>.none)
             }
+            .pickerStyle(.menu)
+            .fixedSize()
         }
-        .formStyle(.grouped)
         // A popover does not consistently inherit the Settings window's
         // switch style, which can render an active toggle without its thumb.
         .toggleStyle(.switch)
-        .frame(width: 330, height: 260)
+        .padding(14)
+        // Width only: the popover sizes itself to the three controls instead of
+        // reserving the height an editable list would have needed.
+        .frame(width: 300, alignment: .leading)
     }
 
     // MARK: - Data
@@ -415,7 +421,8 @@ struct RepositoryPickerView: View {
 
     /// Mirrors ``RepositoryScope/filter(_:now:)`` exactly, including the order
     /// of its checks: excluded beats pinned, pinned beats every filter. If that
-    /// method changes, this has to change with it or the indicator lies.
+    /// method changes, this has to change with it or the indicator lies, so
+    /// `RepositoryScopeTests` asserts the two agree.
     static func standing(for repo: RepoSnapshot, scope: RepositoryScope, now: Date) -> ScopeStanding {
         if scope.excluded.contains(repo.nameWithOwner) { return .excluded }
         if scope.pinned.contains(repo.nameWithOwner) { return .pinned }
@@ -452,9 +459,10 @@ struct RepositoryPickerView: View {
         model.preferences.repositoryScope.filter(candidates).count
     }
 
-    /// `Profile.publicRepoCount` carries `repositories(ownerAffiliations: [OWNER]).totalCount`,
-    /// which is every repository the account owns — the honest denominator even
-    /// before the full list has loaded.
+    /// The repositories currently known. GitLab's `/user` payload carries no
+    /// project total, so `Profile.publicRepoCount` stays 0 and the count is the
+    /// list itself: before the full catalog loads this is the watched set, which
+    /// reads as "Watching 12 of 12" until the reload fills the rest in.
     private var totalCount: Int {
         max(candidates.count, model.profile?.publicRepoCount ?? 0)
     }

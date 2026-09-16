@@ -87,14 +87,17 @@ public struct GitLabClient: GitLabAPI {
         guard scope.includeOwned else { return [] }
         let payload: [ProjectPayload] = try await getAllPages(
             "projects",
-            query: ["membership": "true", "simple": "true", "order_by": "last_activity_at", "sort": "desc"],
+            // Not `simple=true`: the compact representation omits `star_count`
+            // and `forked_from_project`, which the scope rule and the
+            // repository picker both read.
+            query: ["membership": "true", "order_by": "last_activity_at", "sort": "desc"],
             pageSize: options.pageSize
         )
         let projects = payload.filter { project in
             guard let snapshot = project.model else { return false }
             return !scope.filter([snapshot], now: clock()).isEmpty
         }
-        return try await withThrowingTaskGroup(of: RepoSnapshot.self) { group in
+        return try await withThrowingTaskGroup(of: RepoSnapshot?.self) { group in
             var iterator = projects.makeIterator()
             for _ in 0..<min(options.pipelineConcurrency, projects.count) {
                 guard let project = iterator.next() else { break }
@@ -102,7 +105,7 @@ public struct GitLabClient: GitLabAPI {
             }
             var snapshots: [RepoSnapshot] = []
             while let snapshot = try await group.next() {
-                snapshots.append(snapshot)
+                if let snapshot { snapshots.append(snapshot) }
                 if let project = iterator.next() {
                     group.addTask { try await project.snapshot(pipelineState: self.fetchLatestPipeline(projectID: project.id)) }
                 }
@@ -297,14 +300,27 @@ private struct IssuePayload: Decodable {
     var model: IssueItem { IssueItem(id: String(id), number: iid, title: title, repository: references.full.split(separator: "#").first.map(String.init) ?? "Unknown", author: author?.model, url: webURL, createdAt: createdAt, updatedAt: updatedAt, commentCount: userNotesCount, labels: labels) }
 }
 private struct ProjectPayload: Decodable {
-    let id: Int; let pathWithNamespace: String; let visibility: String?; let openIssuesCount: Int?; let defaultBranch: String?; let lastActivityAt: Date?; let webURL: URL?
-    enum CodingKeys: String, CodingKey { case id, visibility; case pathWithNamespace = "path_with_namespace"; case openIssuesCount = "open_issues_count"; case defaultBranch = "default_branch"; case lastActivityAt = "last_activity_at"; case webURL = "web_url" }
+    let id: Int; let pathWithNamespace: String; let visibility: String?; let openIssuesCount: Int?; let starCount: Int?; let forksCount: Int?; let forkedFromProject: ForkParent?; let defaultBranch: String?; let lastActivityAt: Date?; let webURL: URL?
+    enum CodingKeys: String, CodingKey { case id, visibility; case pathWithNamespace = "path_with_namespace"; case openIssuesCount = "open_issues_count"; case starCount = "star_count"; case forksCount = "forks_count"; case forkedFromProject = "forked_from_project"; case defaultBranch = "default_branch"; case lastActivityAt = "last_activity_at"; case webURL = "web_url" }
+    /// GitLab only emits `forked_from_project` for projects that are forks, and
+    /// only outside `simple=true`, so its mere presence is the fork flag.
+    struct ForkParent: Decodable { let id: Int }
     var model: RepoSnapshot? {
         guard let webURL else { return nil }
-        return RepoSnapshot(nameWithOwner: pathWithNamespace, isPrivate: visibility != "public", openIssueCount: openIssuesCount ?? 0, defaultBranch: defaultBranch, pushedAt: lastActivityAt, url: webURL)
+        return RepoSnapshot(
+            nameWithOwner: pathWithNamespace,
+            isPrivate: visibility != "public",
+            isFork: forkedFromProject != nil,
+            stargazerCount: starCount ?? 0,
+            forkCount: forksCount ?? 0,
+            openIssueCount: openIssuesCount ?? 0,
+            defaultBranch: defaultBranch,
+            pushedAt: lastActivityAt,
+            url: webURL
+        )
     }
-    func snapshot(pipelineState: CheckState) -> RepoSnapshot {
-        var snapshot = model!
+    func snapshot(pipelineState: CheckState) -> RepoSnapshot? {
+        guard var snapshot = model else { return nil }
         snapshot.checkState = pipelineState
         return snapshot
     }

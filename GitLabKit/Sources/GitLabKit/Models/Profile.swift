@@ -5,6 +5,8 @@ public struct Profile: Sendable, Codable, Hashable {
     public var login: String
     public var name: String?
     public var avatarURL: URL?
+    // Kept only for decoding profiles from the first prototype. GitLab's
+    // `/user` payload carries no equivalent, so nothing fills these.
     public var followers: Int
     public var following: Int
     public var publicRepoCount: Int

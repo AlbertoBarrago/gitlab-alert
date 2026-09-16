@@ -104,11 +104,11 @@ public struct RepoSnapshot: Sendable, Codable, Hashable, Identifiable {
     public var checkState: CheckState
     public var pushedAt: Date?
     public var url: URL
-    // Kept only for decoding snapshots from the first prototype. GitLabAlert
-    // no longer fills or renders these values.
     public var isFork: Bool
     public var stargazerCount: Int
     public var forkCount: Int
+    // Kept only for decoding snapshots from the first prototype. The GitLab
+    // project payload carries no equivalent, so nothing fills this.
     public var openMergeRequestCount: Int
 
     public var id: String { nameWithOwner }
