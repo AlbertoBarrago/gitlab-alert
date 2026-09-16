@@ -43,8 +43,16 @@ available as a fallback.
 The app is not notarized. First try to open it from Applications so macOS
 records the blocked launch. Then open **System Settings → Privacy & Security**,
 scroll to Security, click **Open Anyway**, authenticate and confirm **Open**.
-macOS saves that exception; later launches work normally. No Terminal script or
-removal of the quarantine attribute is required.
+If macOS still reports that the app cannot be opened, remove only its quarantine
+attribute, then launch it again:
+
+```sh
+xattr -dr com.apple.quarantine "/Applications/GitLabAlert.app"
+```
+
+This is narrower than `xattr -cr`, which removes every extended attribute from
+the bundle. Run it only after verifying that the app came from this repository's
+GitHub release.
 
 ### Build from source
 

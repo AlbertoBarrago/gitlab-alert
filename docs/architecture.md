@@ -168,4 +168,6 @@ Stable code signing matters even for local builds because Keychain ACLs and
 notification grants are tied to the app's designated requirement. Release
 packages use the project's stable self-signed identity. They are signed and
 verified but not Apple-notarized. After the first blocked launch, another Mac
-must approve the app with **Privacy & Security → Open Anyway**.
+must approve the app with **Privacy & Security → Open Anyway**. If Gatekeeper
+still blocks the self-signed bundle, the user removes only its quarantine flag
+with `xattr -dr com.apple.quarantine "/Applications/GitLabAlert.app"`.
