@@ -60,13 +60,14 @@ final class AppModel {
     // MARK: - Collaborators
 
     private let tokenStore: any TokenStore
-    private let api: any GitLabAPI
+    private var api: any GitLabAPI
+    private let apiFactory: @Sendable (URL) -> any GitLabAPI
     private let loginItem: LoginItem
     private let log = Logger(subsystem: "com.alBz.GitLabAlert", category: "model")
     private weak var scheduler: PollScheduler?
     private var accountTask: Task<Void, Never>?
     private var accountRevision = 0
-    private var isChangingAccount = false
+    private(set) var isChangingAccount = false
     private var catalogTask: Task<Void, Never>?
 
 
@@ -86,11 +87,13 @@ final class AppModel {
         preferences: Preferences,
         tokenStore: any TokenStore,
         api: any GitLabAPI,
+        apiFactory: @escaping @Sendable (URL) -> any GitLabAPI,
         loginItem: LoginItem = LoginItem()
     ) {
         self.preferences = preferences
         self.tokenStore = tokenStore
         self.api = api
+        self.apiFactory = apiFactory
         self.loginItem = loginItem
         self.loginItemState = loginItem.state
         self.authState = Self.initialAuthState(tokenStore: tokenStore)
@@ -200,7 +203,7 @@ final class AppModel {
     /// `authState`, which is what the UI is watching.
     func saveToken(_ raw: String) {
         let token = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !token.isEmpty else { return }
+        guard !token.isEmpty, !isChangingAccount else { return }
         let previous = accountTask
         previous?.cancel()
         accountRevision += 1
@@ -269,6 +272,52 @@ final class AppModel {
                 self.lastError = .transport(message)
                 self.authState = .rejected(message)
             }
+            self.isChangingAccount = false
+        }
+    }
+
+    /// Changes GitLab instances without ever sending a stored token to the new
+    /// host. The scheduler is stopped before Keychain credentials are removed,
+    /// then both the foreground client and the polling client are rebound.
+    func updateGitLabBaseURL(_ rawValue: String) {
+        let previousBaseURL = preferences.gitLabBaseURL
+        preferences.gitLabBaseURLString = rawValue
+        let newBaseURL = preferences.gitLabBaseURL
+        guard newBaseURL != previousBaseURL else { return }
+
+        let previous = accountTask
+        previous?.cancel()
+        accountRevision += 1
+        let revision = accountRevision
+        isChangingAccount = true
+        authState = .needsToken
+        clearAccountData()
+
+        accountTask = Task { [weak self] in
+            await previous?.value
+            guard let self, revision == self.accountRevision else { return }
+            await self.scheduler?.stop()
+            guard revision == self.accountRevision else { return }
+            await self.scheduler?.clearState()
+            guard revision == self.accountRevision else { return }
+
+            do {
+                try self.tokenStore.deleteToken()
+            } catch {
+                guard revision == self.accountRevision else { return }
+                self.preferences.gitLabBaseURLString = previousBaseURL.absoluteString
+                let message = "Could not remove the token from Keychain. The GitLab instance was not changed."
+                self.lastError = .transport(message)
+                self.authState = .rejected(message)
+                self.isChangingAccount = false
+                return
+            }
+
+            guard revision == self.accountRevision else { return }
+            let replacement = self.apiFactory(newBaseURL)
+            self.api = replacement
+            await self.scheduler?.replaceAPI(replacement)
+            guard revision == self.accountRevision else { return }
             self.isChangingAccount = false
         }
     }

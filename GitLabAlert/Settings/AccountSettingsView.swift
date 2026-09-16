@@ -12,13 +12,27 @@ struct AccountSettingsView: View {
     let model: AppModel
 
     @State private var isConfirmingRemoval = false
+    @State private var gitLabBaseURLDraft = ""
+    @FocusState private var isEditingGitLabInstance: Bool
 
     var body: some View {
         Form {
             Section("GitLab instance") {
-                TextField("https://gitlab.example.com", text: model.preferences.binding(\.gitLabBaseURLString))
+                TextField(
+                    "https://gitlab.example.com",
+                    text: $gitLabBaseURLDraft
+                )
                     .textContentType(.URL)
-                SettingsFootnote("Use the origin of your GitLab.com or self-managed instance. Restart the app after changing it, then save a token for that instance.")
+                    .focused($isEditingGitLabInstance)
+                    .onSubmit(applyGitLabInstanceChange)
+                SettingsFootnote("Use the origin of your GitLab.com or self-managed instance. Changing it removes the stored token before you can save one for that instance.")
+                if model.isChangingAccount {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text("Switching GitLab instance…")
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
 
             switch model.authState {
@@ -50,6 +64,13 @@ struct AccountSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .onAppear { gitLabBaseURLDraft = model.preferences.gitLabBaseURLString }
+        .onChange(of: isEditingGitLabInstance) { wasEditing, isEditing in
+            if wasEditing, !isEditing { applyGitLabInstanceChange() }
+        }
+        .onChange(of: model.isChangingAccount) { _, isChanging in
+            if !isChanging { gitLabBaseURLDraft = model.preferences.gitLabBaseURLString }
+        }
     }
 
     // MARK: - Signed in
@@ -108,6 +129,11 @@ struct AccountSettingsView: View {
     /// information the UI has no business carrying.
     private static let dotMask = String(repeating: "•", count: 24)
 
+    private func applyGitLabInstanceChange() {
+        model.updateGitLabBaseURL(gitLabBaseURLDraft)
+        gitLabBaseURLDraft = model.preferences.gitLabBaseURLString
+    }
+
     /// ``GitLabError/userMessage`` is written for the popover, where the fix is
     /// "check it in Settings". Inside Settings that sentence is a dead end, so
     /// the pointer is dropped and the diagnosis kept verbatim.
@@ -134,7 +160,7 @@ struct TokenEntryForm: View {
     private var isVerifying: Bool { model.authState == .verifying }
 
     private var canSave: Bool {
-        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isVerifying
+        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isVerifying && !model.isChangingAccount
     }
 
     var body: some View {

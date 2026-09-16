@@ -90,7 +90,12 @@ private func scheduler(api: ControlledAPI, store: MemoryStore, recorder: Recorde
 @MainActor
 private func model(api: ControlledAPI, store: MemoryStore) -> AppModel {
     let defaults = UserDefaults(suiteName: "GitLabAlertTests.\(UUID().uuidString)")!
-    return AppModel(preferences: Preferences(defaults: defaults), tokenStore: store, api: api)
+    return AppModel(
+        preferences: Preferences(defaults: defaults),
+        tokenStore: store,
+        api: api,
+        apiFactory: { _ in api }
+    )
 }
 
 @Suite("App lifecycle", .timeLimit(.minutes(1)))
@@ -298,6 +303,27 @@ struct LifecycleTests {
         await api.finishVerification(.failure(.badCredentials))
         try await eventually { app.lastError == .badCredentials }
         #expect(try store.readToken() == nil)
+    }
+
+    @Test func changingGitLabInstanceUsesANewClientBeforeAcceptingAToken() async throws {
+        let oldAPI = ControlledAPI(), newAPI = ControlledAPI(), store = MemoryStore()
+        let defaults = UserDefaults(suiteName: "GitLabAlertTests.\(UUID().uuidString)")!
+        let app = AppModel(
+            preferences: Preferences(defaults: defaults),
+            tokenStore: store,
+            api: oldAPI,
+            apiFactory: { url in url.host == "gitlab.example.com" ? newAPI : oldAPI }
+        )
+
+        app.updateGitLabBaseURL("https://gitlab.example.com")
+        try await eventually { !app.isChangingAccount }
+        #expect(app.preferences.gitLabBaseURL.host == "gitlab.example.com")
+        #expect(try store.readToken() == nil)
+
+        app.saveToken("replacement")
+        try await eventually { await newAPI.verificationCalls == 1 }
+        #expect(await oldAPI.verificationCalls == 0)
+        await newAPI.finishVerification(.success(snapshot(login: "bob").profile))
     }
 
     @Test func failedKeychainDeletionIsVisible() async throws {

@@ -324,10 +324,12 @@ enum SampleData {
         log: [ActivityEvent],
         fresh: [ActivityEvent]
     ) -> AppModel {
+        let apiSnapshot = snapshot ?? emptySnapshot
         let model = AppModel(
             preferences: previewPreferences,
             tokenStore: PreviewTokenStore(token: token),
-            api: PreviewGitLabAPI(snapshot: snapshot ?? emptySnapshot)
+            api: PreviewGitLabAPI(snapshot: apiSnapshot),
+            apiFactory: { _ in PreviewGitLabAPI(snapshot: apiSnapshot) }
         )
         if let snapshot {
             // `apply` is also what promotes `.verifying` to `.ready`, which is

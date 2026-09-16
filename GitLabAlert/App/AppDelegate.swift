@@ -63,16 +63,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let tokenStore = KeychainTokenStore()
         let stateStore = FileStateStore()
-        let client = GitLabClient(
-            httpClient: URLSessionHTTPClient(),
-            tokenStore: tokenStore,
-            baseURL: preferences.gitLabBaseURL
-        )
+        let makeClient: @Sendable (URL) -> any GitLabAPI = { baseURL in
+            GitLabClient(httpClient: URLSessionHTTPClient(), tokenStore: tokenStore, baseURL: baseURL)
+        }
+        let client = makeClient(preferences.gitLabBaseURL)
 
         model = AppModel(
             preferences: preferences,
             tokenStore: tokenStore,
-            api: client
+            api: client,
+            apiFactory: makeClient
         )
 
         let model = model!

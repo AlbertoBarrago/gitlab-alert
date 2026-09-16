@@ -435,7 +435,8 @@ enum DetailPreviewFixtures {
         let model = AppModel(
             preferences: Preferences(defaults: defaults),
             tokenStore: PreviewTokenStore(),
-            api: PreviewAPI()
+            api: PreviewAPI(),
+            apiFactory: { _ in PreviewAPI() }
         )
         if populated {
             model.restore(

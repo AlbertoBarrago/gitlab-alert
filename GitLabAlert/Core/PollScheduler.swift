@@ -47,7 +47,7 @@ actor PollScheduler {
     /// has no business costing battery life.
     static let defaultBatteryInterval: TimeInterval = 900
 
-    private let api: any GitLabAPI
+    private var api: any GitLabAPI
     private let engine: any ActivityDiffing
     private let store: any StateStore
     private let notifier: any Notifying
@@ -158,6 +158,14 @@ actor PollScheduler {
         await loop?.value
         runLoop = nil
         inFlight = nil
+    }
+
+    /// Rebinds polling to another GitLab instance after the current cycle has
+    /// been stopped and its persisted state cleared by the account owner.
+    func replaceAPI(_ api: any GitLabAPI) {
+        generation += 1
+        inFlight?.cancel()
+        self.api = api
     }
 
     /// Refresh now. Joins an in-flight cycle rather than starting a second one:
