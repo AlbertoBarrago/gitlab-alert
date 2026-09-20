@@ -1,21 +1,21 @@
 import GitLabKit
 import SwiftUI
-import os
 
 /// One circular GitLab avatar, with a monogram standing in while it loads and
 /// whenever it cannot be loaded at all.
 ///
-/// Loading is plain `AsyncImage`, so the caching is `URLSession.shared`'s
-/// `URLCache` — there is no hand-rolled image cache here on purpose. Avatars
-/// are small, immutable and served with sane cache headers; a bespoke cache
-/// would be a second source of truth for no measurable gain.
+/// The fetch itself belongs to ``AvatarLoader``: whether the GitLab credential
+/// may travel with the request depends on the configured origin, which is not
+/// something a view should be deciding. Without an injected loader the view
+/// falls back to the anonymous one, so a missing injection costs an avatar on a
+/// private instance rather than leaking a token.
 struct AvatarView: View {
 
     let login: String
     let avatarURL: URL?
     var size: CGFloat = 22
+    @Environment(\.avatarLoader) private var loader
     @State private var imageData: Data?
-    private let logger = Logger(subsystem: "com.alBz.GitLabAlert", category: "avatar")
 
     var body: some View {
         content
@@ -42,43 +42,8 @@ struct AvatarView: View {
         }
     }
 
-    /// Avatar URLs come from the API and are untrusted. Anything that is not
-    /// plain https is dropped and the monogram stands in, so a `file:` or
-    /// `data:` URL in a payload can never cause a load.
-    private static func loadableURL(_ url: URL?) -> URL? {
-        guard let url, url.scheme?.lowercased() == "https" else { return nil }
-        return url
-    }
-
     private func loadAvatar() async {
-        guard let url = Self.loadableURL(avatarURL) else {
-            logger.debug("avatar unavailable login=\(login, privacy: .public) hasURL=\(avatarURL != nil, privacy: .public)")
-            imageData = nil
-            return
-        }
-
-        var request = URLRequest(url: url)
-        if let token = try? KeychainTokenStore().readToken(), !token.isEmpty {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        request.setValue("image/*", forHTTPHeaderField: "Accept")
-
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse,
-                  (200..<300).contains(http.statusCode),
-                  NSImage(data: data) != nil else {
-                let status = (response as? HTTPURLResponse)?.statusCode ?? -1
-                logger.error("avatar request failed login=\(login, privacy: .public) status=\(status, privacy: .public)")
-                imageData = nil
-                return
-            }
-            logger.debug("avatar loaded login=\(login, privacy: .public)")
-            imageData = data
-        } catch {
-            logger.error("avatar request error login=\(login, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
-            imageData = nil
-        }
+        imageData = await (loader ?? .anonymous).imageData(for: avatarURL)
     }
 
     // MARK: - Monogram
