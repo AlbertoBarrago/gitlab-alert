@@ -1,4 +1,12 @@
-# GitLab Alert
+<p align="center">
+  <img src="assets/gitlab-alert-icon.png" alt="" width="132" height="132">
+</p>
+
+<h1 align="center">GitLab Alert</h1>
+
+<p align="center"><em>The GitLab work that needs you, in the corner of your screen.</em></p>
+
+<p align="center">
 
 [![Latest release](https://img.shields.io/github/v/release/AlbertoBarrago/gitlab-alert?logo=github&label=release&color=fc6d26)](https://github.com/AlbertoBarrago/gitlab-alert/releases/latest)
 [![CI](https://img.shields.io/github/actions/workflow/status/AlbertoBarrago/gitlab-alert/ci.yml?branch=main&logo=githubactions&logoColor=white&label=tests)](https://github.com/AlbertoBarrago/gitlab-alert/actions/workflows/ci.yml)
@@ -8,6 +16,8 @@
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](https://www.swift.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Security policy](https://img.shields.io/badge/security-policy-success?logo=github)](SECURITY.md)
+
+</p>
 
 A macOS menu bar app that keeps the GitLab work needing your attention in the
 corner of your screen, instead of in a browser tab. It lives in the menu bar
