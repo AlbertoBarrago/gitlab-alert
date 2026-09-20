@@ -29,39 +29,17 @@ struct DetailRootView: View {
     @State private var pendingItemID: String?
 
     var body: some View {
-        // Two layouts, not one with a hidden column: a three-column split
-        // cannot collapse its detail column, and the report has nothing to put
-        // there — no rows, so nothing to inspect. Asking for a two-column
-        // split is the only way to stop drawing an empty third of the window.
-        Group {
-            if target == .report {
-                NavigationSplitView {
-                    sidebar
-                } detail: {
-                    ReportView(model: model)
-                        .navigationSplitViewColumnWidth(min: 380, ideal: 560)
-                }
-            } else {
-                NavigationSplitView {
-                    sidebar
-                } content: {
-                    DetailListView(
-                        model: model,
-                        target: target,
-                        rows: visibleRows,
-                        unfilteredCount: rows.count,
-                        filter: $filter,
-                        searchQuery: $searchQuery,
-                        selection: $selectedRowID,
-                        onRevealRepository: reveal(repository:)
-                    )
-                } detail: {
+        NavigationSplitView {
+            sidebar
+        } detail: {
+            content
+                .inspector(isPresented: showsInspector) {
                     DetailInspectorView(model: model, row: selectedRow)
+                        .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
                 }
-            }
         }
         .navigationSplitViewStyle(.balanced)
-        .frame(minWidth: 700, minHeight: 420)
+        .frame(minWidth: 760, minHeight: 520)
         .task(id: datasetKey) { rebuildRows() }
         .task(id: FilterKey(version: rowsVersion, filter: filter)) { applyFilter() }
         .task(id: searchQuery) { await debounceSearch() }
@@ -74,6 +52,48 @@ struct DetailRootView: View {
         // an `onAppear`.
         .onChange(of: model.pendingSelection) { consumePendingSelection() }
         .onChange(of: target) { resetForNewTarget() }
+    }
+
+    // MARK: - Content
+
+    /// What the one content column shows. A row set, a report, or a form: the
+    /// window shows a row set or the report; Settings keep a window of their
+    /// own, because preferences are not data.
+    @ViewBuilder
+    private var content: some View {
+        switch target {
+        case .report:
+            ReportView(model: model)
+        default:
+            DetailListView(
+                model: model,
+                target: target,
+                rows: visibleRows,
+                unfilteredCount: rows.count,
+                filter: $filter,
+                searchQuery: $searchQuery,
+                selection: $selectedRowID,
+                onRevealRepository: reveal(repository:)
+            )
+        }
+    }
+
+    /// The inspector opens on a selected row and nowhere else: a report has no
+    /// rows and a form is not something you inspect, so on those it would be an
+    /// empty panel taking a third of the window.
+    private var showsInspector: Binding<Bool> {
+        Binding(
+            get: {
+                guard selectedRow != nil else { return false }
+                switch target {
+                case .section, .repository: return true
+                case .report, .none: return false
+                }
+            },
+            set: { isShown in
+                if !isShown { selectedRowID = nil }
+            }
+        )
     }
 
     // MARK: - Derived
