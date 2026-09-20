@@ -1,5 +1,14 @@
 # GitLab Alert
 
+[![Latest release](https://img.shields.io/github/v/release/AlbertoBarrago/gitlab-alert?logo=github&label=release&color=fc6d26)](https://github.com/AlbertoBarrago/gitlab-alert/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/AlbertoBarrago/gitlab-alert/ci.yml?branch=main&logo=githubactions&logoColor=white&label=tests)](https://github.com/AlbertoBarrago/gitlab-alert/actions/workflows/ci.yml)
+[![Downloads](https://img.shields.io/github/downloads/AlbertoBarrago/gitlab-alert/total?logo=github&label=downloads)](https://github.com/AlbertoBarrago/gitlab-alert/releases)
+[![Stars](https://img.shields.io/github/stars/AlbertoBarrago/gitlab-alert?logo=github&label=stars)](https://github.com/AlbertoBarrago/gitlab-alert/stargazers)
+[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)](https://www.apple.com/macos/)
+[![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](https://www.swift.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Security policy](https://img.shields.io/badge/security-policy-success?logo=github)](SECURITY.md)
+
 A macOS menu bar app that keeps the GitLab work needing your attention in the
 corner of your screen, instead of in a browser tab. It lives in the menu bar
 only, with no Dock icon, and shows you:
@@ -96,8 +105,9 @@ Keychain and notification permissions remain stable.
 
 ## Configuration
 
-GitLab Alert authenticates with a personal access token. In Settings, enter the
-origin of GitLab.com or of your self-managed instance, for example
+GitLab Alert authenticates with a personal access token. In **Settings →
+Account**, reachable from the status item menu, enter the origin of GitLab.com
+or of your self-managed instance, for example
 `https://gitlab.com` or `https://gitlab.example.com`. Origin changes take effect
 immediately.
 
@@ -130,6 +140,12 @@ paginated and pipeline checks are concurrency-limited. Both the page size and
 the pipeline concurrency can be adjusted in Settings for self-managed GitLab
 instances.
 
+The status item is the way in: left click opens the popover, right click opens a
+menu with **Open Dashboard**, **About** and **Settings…**. The dashboard window
+holds the sections, the watched repositories and the **Report**; selecting a row
+slides in an inspector panel, and closing it releases the width back to the
+table. Settings are a window of their own — preferences are not data.
+
 The app stores credentials in the Keychain, preferences in `UserDefaults`, and
 the last dashboard plus notification watermarks in Application Support. The
 first successful refresh seeds those watermarks silently, so a new installation
@@ -156,7 +172,7 @@ and persisted read state. The menu bar UI still needs manual verification; see
 
 ```
 GitLabAlert/         app sources: AppKit shell, SwiftUI views, settings
-GitLabKit/           local SwiftPM package: REST client and testable logic
+GitLabKit/           local SwiftPM package: REST client, report engine, update check
 bin/                 build, run, release and signing scripts
 docs/                architecture and manual QA checklist
 SECURITY.md          threat model, credential handling, network egress
