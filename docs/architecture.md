@@ -156,13 +156,22 @@ the previous account.
 
 - The token is requested with `read_api` only and is sent in GitLab's
   `PRIVATE-TOKEN` header solely to the configured origin.
-- Views never receive or read the stored token.
+- Views never receive or read the stored token. `AvatarLoader` is the only
+  application-layer type that reads it outside `AppModel`, and views reach it
+  through the environment.
 - State files contain dashboard data but no credentials and are replaced
   atomically with owner-only permissions.
 - Remote avatar URLs must use HTTPS; other schemes fall back to a local
-  monogram.
+  monogram. Avatar URLs arrive from API payloads and often point elsewhere —
+  `avatars.gitlabusercontent.com` on GitLab.com, `gravatar.com` on any instance
+  with Gravatar enabled — so `AvatarRequest` attaches the credential only when
+  the URL is on the configured origin, matching host and effective port, and
+  `AvatarLoader` re-derives every redirect hop under the same rule.
 - GitLab origins hosted below a URL sub-path are currently unsupported.
 - The app has no analytics or third-party runtime services.
+
+[`SECURITY.md`](../SECURITY.md) and [`PRIVACY.md`](../PRIVACY.md) state the same
+boundaries for a reader who is authorizing the app rather than changing it.
 
 Stable code signing matters even for local builds because Keychain ACLs and
 notification grants are tied to the app's designated requirement. Release
