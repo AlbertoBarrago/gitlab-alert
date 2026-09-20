@@ -12,11 +12,6 @@ public enum ActivityKind: String, Sendable, Codable, Hashable, CaseIterable {
     public static var allCases: [ActivityKind] {
         [.checksFailed, .checksRecovered, .reviewRequested, .inboundIssue, .inboundMergeRequest]
     }
-
-    // Legacy aliases keep old preview decoding source-compatible while these
-    // events are no longer valid values emitted by the app.
-    public static let star = ActivityKind.checksFailed
-    public static let fork = ActivityKind.checksFailed
 }
 
 public struct ActivityEvent: Sendable, Codable, Hashable, Identifiable {

@@ -44,8 +44,11 @@ struct ProfileHeaderView: View {
         .accessibilityHint(Text("Opens your GitLab profile"))
     }
 
+    /// Just the handle. GitLab's `/user` payload carries no follower counts —
+    /// `Profile` keeps the fields only to decode old snapshots — so showing
+    /// them meant a permanent "0 followers · 0 following".
     private var subtitle: String {
-        "@\(profile.login) · \(profile.followers.compactCount) followers · \(profile.following.compactCount) following"
+        "@\(profile.login)"
     }
 }
 

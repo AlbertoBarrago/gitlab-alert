@@ -328,7 +328,7 @@ struct PopoverRootView: View {
         case .assignedIssues: return "Nothing assigned to you"
         case .inboundIssues: return "No inbound issues"
         case .repositories: return "All checks are green"
-        case .activity: return "No new stars or forks yet"
+        case .activity: return "No pipeline or review activity yet"
         }
     }
 

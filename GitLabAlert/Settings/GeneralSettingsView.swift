@@ -66,7 +66,7 @@ struct GeneralSettingsView: View {
 
             Section("Popover") {
                 Toggle("Show the profile header", isOn: model.preferences.binding(\.showProfileHeader))
-                SettingsFootnote("Your avatar, name, followers and repository count at the top of the popover.")
+                SettingsFootnote("Your avatar and name at the top of the popover.")
             }
 
             Section("GitLab API") {

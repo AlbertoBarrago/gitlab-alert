@@ -412,8 +412,8 @@ enum DetailPreviewFixtures {
 
     static let activityLog: [ActivityEvent] = [
         ActivityEvent(
-            id: "star:albz/gitlab-alert:1",
-            kind: .star,
+            id: "review:albz/gitlab-alert:1",
+            kind: .reviewRequested,
             occurredAt: now.addingTimeInterval(-900),
             repository: "albz/gitlab-alert",
             delta: 3,
@@ -429,8 +429,8 @@ enum DetailPreviewFixtures {
             url: URL(string: "https://gitlab.com/albz/gitlab-alert/actions")!
         ),
         ActivityEvent(
-            id: "fork:albz/dockdock:1",
-            kind: .fork,
+            id: "inbound:albz/dockdock:1",
+            kind: .inboundMergeRequest,
             occurredAt: now.addingTimeInterval(-86_400 * 1.5),
             repository: "albz/dockdock",
             actors: [stranger],
@@ -438,7 +438,7 @@ enum DetailPreviewFixtures {
         )
     ]
 
-    static let unreadEventIDs: Set<String> = ["star:albz/gitlab-alert:1"]
+    static let unreadEventIDs: Set<String> = ["review:albz/gitlab-alert:1"]
 
     static func rows(for target: DetailTarget) -> [DetailRow] {
         DetailRowFactory.rows(

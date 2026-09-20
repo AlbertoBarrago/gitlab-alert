@@ -555,7 +555,7 @@ struct DetailListView: View {
             case .repositories:
                 return ("shippingbox", "No repositories in scope", "Widen the repository scope in Settings to watch more.")
             case .activity:
-                return ("sparkles", "No activity yet", "Stars, forks and CI changes will show up here as they happen.")
+                return ("sparkles", "No activity yet", "Pipeline changes, review requests and new inbound items show up here as they happen.")
             }
         }
     }
