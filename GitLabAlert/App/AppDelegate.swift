@@ -45,9 +45,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await notifier?.refreshAuthorizationState()
             await model?.start()
         }
+        model.startUpdateWatch()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        model.stopUpdateWatch()
         Task { [scheduler] in await scheduler?.stop() }
     }
 
@@ -74,7 +76,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             preferences: preferences,
             tokenStore: tokenStore,
             api: client,
-            apiFactory: makeClient
+            apiFactory: makeClient,
+            releaseChecker: GitHubReleaseChecker(httpClient: URLSessionHTTPClient())
         )
 
         let model = model!
@@ -137,6 +140,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.onForceRefresh = { [weak self] in self?.model.refresh() }
         statusItem.onOpenDetail = { [weak self] in self?.showDetailWindow() }
         statusItem.onOpenAbout = { [weak self] in self?.showAboutWindow() }
+        statusItem.onOpenRelease = { [weak self] in
+            guard let url = self?.model.availableUpdate?.releaseURL else { return }
+            NSWorkspace.shared.open(url)
+        }
         statusItem.onOpenSettings = { [weak self] in self?.showSettingsWindow() }
 
         model.openDetailWindow = { [weak self] in self?.showDetailWindow() }
@@ -203,7 +210,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// dismissed, and it has nothing to configure.
     private func showAboutWindow() {
         if aboutWindow == nil {
-            let controller = AboutWindowController(content: AboutView())
+            let controller = AboutWindowController(content: AboutView(model: model))
             controller.onClose = { [weak self] in self?.aboutWindow = nil }
             aboutWindow = controller
         }
@@ -262,6 +269,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             _ = model.actionableCount
             _ = model.hasUnreadActivity
             _ = model.lastError
+            _ = model.availableUpdate
             _ = preferences.statusItemVisible
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
@@ -281,5 +289,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
         )
         statusItem.isVisible = preferences.statusItemVisible
+        statusItem.availableUpdateVersion = model.availableUpdate?.latest.description
     }
 }

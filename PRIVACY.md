@@ -3,9 +3,12 @@
 GitLab Alert collects nothing.
 
 There is no analytics, no telemetry, no crash reporting, no advertising
-identifier, no account, no licence check and no update check. The project runs
-no servers, so there is no place for your data to arrive even in principle. The
-app talks to the GitLab instance you configure and to nothing else — see
+identifier, no account and no licence check. The project runs no servers, so
+there is no place for your data to arrive even in principle.
+
+The app talks to the GitLab instance you configure. It makes exactly one request
+elsewhere — an anonymous check of the latest published release on GitHub, which
+you can switch off — described under **Third parties** below. See
 [`SECURITY.md`](SECURITY.md) for the exact list of requests and the file that
 implements each one.
 
@@ -30,7 +33,8 @@ reviewer.
 | Account data | your username, display name, avatar URL | in memory, and in the local state file | No |
 | Work items | titles, authors, reviewers, URLs and states of merge requests and issues assigned to or authored by you | local state file | No |
 | Projects | names, visibility, star and fork counts, last pipeline state | local state file | No |
-| Preferences | GitLab origin, polling intervals, repository scope, UI choices | `UserDefaults` | No |
+| Preferences | GitLab origin, polling intervals, repository scope, UI choices, whether update checks are on | `UserDefaults` | No |
+| Update check result | the latest published version number | memory only | No — the check asks GitHub for a version, and sends nothing about you |
 | Notification state | watermarks, seen event IDs | local state file | No |
 
 The app is sandboxed, so everything it writes stays in its own container at
@@ -55,6 +59,14 @@ because they depend on how your instance is configured:
   such an image discloses your IP address to that host, exactly as your browser
   would when you view the same page on GitLab. Disabling Gravatar on your
   instance removes the case entirely.
+- **The update check.** Every six hours, and on demand from the About panel, the
+  app asks GitHub which release is the latest, so it can tell you when you are
+  running an old version. The request carries no token, no account and no
+  identifier: GitHub sees an anonymous request and your IP address, exactly as
+  it would if you opened the releases page in a browser. Nothing about your
+  GitLab instance, your work or your account is sent. **Settings → General →
+  Check for new versions automatically** turns it off, after which the app makes
+  no request to GitHub at all.
 - **Opening a link.** Clicking an item opens it in your default browser. The app
   refuses to open anything that is not https on your configured host.
 
