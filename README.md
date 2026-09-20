@@ -7,16 +7,14 @@
 <p align="center"><em>The GitLab work that needs you, in the corner of your screen.</em></p>
 
 <p align="center">
-
-[![Latest release](https://img.shields.io/github/v/release/AlbertoBarrago/gitlab-alert?logo=github&label=release&color=fc6d26)](https://github.com/AlbertoBarrago/gitlab-alert/releases/latest)
-[![CI](https://img.shields.io/github/actions/workflow/status/AlbertoBarrago/gitlab-alert/ci.yml?branch=main&logo=githubactions&logoColor=white&label=tests)](https://github.com/AlbertoBarrago/gitlab-alert/actions/workflows/ci.yml)
-[![Downloads](https://img.shields.io/github/downloads/AlbertoBarrago/gitlab-alert/total?logo=github&label=downloads)](https://github.com/AlbertoBarrago/gitlab-alert/releases)
-[![Stars](https://img.shields.io/github/stars/AlbertoBarrago/gitlab-alert?logo=github&label=stars)](https://github.com/AlbertoBarrago/gitlab-alert/stargazers)
-[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)](https://www.apple.com/macos/)
-[![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](https://www.swift.org)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![Security policy](https://img.shields.io/badge/security-policy-success?logo=github)](SECURITY.md)
-
+  <a href="https://github.com/AlbertoBarrago/gitlab-alert/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/AlbertoBarrago/gitlab-alert?logo=github&label=release&color=fc6d26"></a>
+  <a href="https://github.com/AlbertoBarrago/gitlab-alert/actions/workflows/ci.yml"><img alt="Tests" src="https://img.shields.io/github/actions/workflow/status/AlbertoBarrago/gitlab-alert/ci.yml?branch=main&logo=githubactions&logoColor=white&label=tests"></a>
+  <a href="https://github.com/AlbertoBarrago/gitlab-alert/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/AlbertoBarrago/gitlab-alert/total?logo=github&label=downloads"></a>
+  <a href="https://github.com/AlbertoBarrago/gitlab-alert/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/AlbertoBarrago/gitlab-alert?logo=github&label=stars"></a>
+  <a href="https://www.apple.com/macos/"><img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white"></a>
+  <a href="https://www.swift.org"><img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
+  <a href="SECURITY.md"><img alt="Security policy" src="https://img.shields.io/badge/security-policy-success?logo=github"></a>
 </p>
 
 A macOS menu bar app that keeps the GitLab work needing your attention in the
