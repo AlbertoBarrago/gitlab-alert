@@ -75,8 +75,6 @@ struct NotificationSettingsView: View {
 
     static func title(for kind: ActivityKind) -> String {
         switch kind {
-        case .star: return "Stars on my repositories"
-        case .fork: return "Forks of my repositories"
         case .reviewRequested: return "Merge requests assigned to me"
         case .checksFailed: return "CI starts failing"
         case .checksRecovered: return "CI goes back to green"
@@ -88,8 +86,6 @@ struct NotificationSettingsView: View {
     /// All of these ship with macOS 14.
     static func symbolName(for kind: ActivityKind) -> String {
         switch kind {
-        case .star: return "star"
-        case .fork: return "arrow.triangle.branch"
         case .reviewRequested: return "eyeglasses"
         case .checksFailed: return "xmark.octagon"
         case .checksRecovered: return "checkmark.seal"

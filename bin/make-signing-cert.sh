@@ -38,8 +38,35 @@ if security find-identity -v -p codesigning 2>/dev/null | grep -q "${CN}"; then
     exit 0
 fi
 
+# The common name of the certificate inside a PKCS#12 bundle, or nothing when
+# the bundle cannot be read.
+p12_common_name() {
+    openssl pkcs12 -in "$1" -legacy -clcerts -nokeys -passin "file:${PASS_FILE}" 2>/dev/null \
+        | openssl x509 -noout -subject -nameopt multiline 2>/dev/null \
+        | awk -F' = ' '/commonName/ { print $2 }'
+}
+
 if [ -f "${P12}" ]; then
-    echo "▶ Found an existing ${P12} — importing it rather than generating a new one."
+    # Signing material has been copied between this project and its siblings
+    # before: the bundle that shipped here carried CN=GitHub Alert Signing, so
+    # every build silently fell back to ad-hoc while this script reported
+    # success. Check the name before trusting the file.
+    FOUND_CN=$(p12_common_name "${P12}")
+    if [ -z "${FOUND_CN}" ]; then
+        echo "❌ ${P12} exists but could not be read with ${PASS_FILE}."
+        echo "   Fix the passphrase, or move the bundle aside and run this again."
+        exit 1
+    fi
+    if [ "${FOUND_CN}" != "${CN}" ]; then
+        echo "❌ ${P12} holds \"${FOUND_CN}\", not \"${CN}\"."
+        echo "   That bundle belongs to another app: importing it would sign"
+        echo "   GitLab Alert with the wrong identity, and the release workflow"
+        echo "   — which requires Authority=${CN} — would reject the result."
+        echo "   Restore the real bundle from your backup, or move this one"
+        echo "   aside and run this script again to generate a fresh identity."
+        exit 1
+    fi
+    echo "▶ Found an existing ${P12} holding \"${CN}\" — importing it rather than generating a new one."
 else
     P12_PASS=$(openssl rand -base64 24)
 
@@ -100,3 +127,11 @@ echo ""
 echo "✅ Signing identity ready → ${CN}"
 echo "   bin/make-app.sh picks it up automatically from here on."
 echo "⚠️  Back up ${P12} and ${PASS_FILE} somewhere safe (password manager)."
+echo ""
+echo "   The release workflow signs with the same identity. If this bundle is"
+echo "   a new one, update both repository secrets so CI and this Mac agree:"
+echo "     SIGNING_CERTIFICATE_P12_BASE64 = base64 -i ${P12}"
+echo "     SIGNING_CERTIFICATE_PASSWORD   = the contents of ${PASS_FILE}"
+echo "   A mismatch is not cosmetic: users updating from a release signed with"
+echo "   the other identity lose their notification grant and have to paste"
+echo "   their token again."

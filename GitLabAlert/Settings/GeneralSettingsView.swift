@@ -54,9 +54,19 @@ struct GeneralSettingsView: View {
                 )
             }
 
+            Section("Updates") {
+                Toggle("Check for new versions automatically", isOn: model.preferences.binding(\.automaticUpdateChecks))
+                SettingsFootnote(
+                    "Asks GitHub which release is the latest, every six hours. It is the only request "
+                    + "that leaves for a host other than your GitLab instance, it carries no token and "
+                    + "no identifier, and with this off the app never makes it. Checking from the About "
+                    + "panel still works."
+                )
+            }
+
             Section("Popover") {
                 Toggle("Show the profile header", isOn: model.preferences.binding(\.showProfileHeader))
-                SettingsFootnote("Your avatar, name, followers and repository count at the top of the popover.")
+                SettingsFootnote("Your avatar and name at the top of the popover.")
             }
 
             Section("GitLab API") {

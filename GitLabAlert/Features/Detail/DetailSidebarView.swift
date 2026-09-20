@@ -23,6 +23,11 @@ struct DetailSidebarView: View {
                     sectionRow(section)
                         .tag(DetailTarget.section(section))
                 }
+                // Last in the group: it summarises the sections above it
+                // rather than being another list of work.
+                Label("Report", systemImage: "chart.bar")
+                    .tag(DetailTarget.report)
+                    .accessibilityLabel("Report, recorded activity by project")
             }
 
             Section {

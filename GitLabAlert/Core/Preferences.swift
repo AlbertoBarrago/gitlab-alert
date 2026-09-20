@@ -76,6 +76,7 @@ public final class Preferences {
         static let launchAtLogin = "app.launchAtLogin"
         static let repositoryScope = "scope.json"
         static let gitLabBaseURL = "account.gitLabBaseURL"
+        static let automaticUpdateChecks = "updates.automaticChecks"
     }
 
     private let defaults: UserDefaults
@@ -97,6 +98,7 @@ public final class Preferences {
     private var storedLaunchAtLogin: Bool
     private var storedRepositoryScope: RepositoryScope
     private var storedGitLabBaseURL: String
+    private var storedAutomaticUpdateChecks: Bool
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -116,6 +118,7 @@ public final class Preferences {
             defaults.object(forKey: Key.pipelineConcurrency) as? Int ?? DashboardRequestOptions.defaultPipelineConcurrency
         )
         storedShowProfileHeader = defaults.object(forKey: Key.showProfileHeader) as? Bool ?? true
+        storedAutomaticUpdateChecks = defaults.object(forKey: Key.automaticUpdateChecks) as? Bool ?? true
         storedStatusItemVisible = defaults.object(forKey: Key.statusItemVisible) as? Bool ?? true
         storedLaunchAtLogin = defaults.object(forKey: Key.launchAtLogin) as? Bool ?? false
         storedSectionOrder = Preferences.repairedOrder(defaults.stringArray(forKey: Key.sectionOrder))
@@ -229,6 +232,19 @@ public final class Preferences {
     }
 
     // MARK: - Layout
+
+    /// Whether the app may ask GitHub which release is the latest.
+    ///
+    /// On by default and switchable off, because it is the one request that
+    /// leaves for a host other than the configured GitLab instance. With it off
+    /// the app makes no such request at all.
+    public var automaticUpdateChecks: Bool {
+        get { storedAutomaticUpdateChecks }
+        set {
+            storedAutomaticUpdateChecks = newValue
+            defaults.set(newValue, forKey: Key.automaticUpdateChecks)
+        }
+    }
 
     public var showProfileHeader: Bool {
         get { storedShowProfileHeader }
@@ -384,6 +400,7 @@ public final class Preferences {
         apiPageSize = DashboardRequestOptions.defaultPageSize
         pipelineConcurrency = DashboardRequestOptions.defaultPipelineConcurrency
         showProfileHeader = true
+        automaticUpdateChecks = true
         statusItemVisible = true
         launchAtLogin = false
         sectionOrder = DashboardSection.defaultOrder

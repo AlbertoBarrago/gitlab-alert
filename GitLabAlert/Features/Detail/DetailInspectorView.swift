@@ -193,7 +193,7 @@ struct DetailInspectorView: View {
 
     private func actors(_ row: DetailRow) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(row.activityKind == .fork ? "Forked by" : "People")
+            Text("People")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
             ForEach(row.actors) { actor in

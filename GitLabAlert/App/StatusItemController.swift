@@ -32,10 +32,13 @@ final class StatusItemController {
     var onForceRefresh: (() -> Void)?
     var onOpenDetail: (() -> Void)?
     var onOpenAbout: (() -> Void)?
+    var onOpenRelease: (() -> Void)?
     var onOpenSettings: (() -> Void)?
 
     private let statusItem: NSStatusItem
     private var presentation: StatusPresentation = .empty
+    /// Set when a newer release exists, which adds one item to the menu.
+    var availableUpdateVersion: String?
 
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -125,11 +128,17 @@ final class StatusItemController {
 
         menu.addItem(withTitle: "Refresh Now", action: #selector(menuRefresh), keyEquivalent: "r")
             .target = self
-        menu.addItem(withTitle: "Open GitLab Alert", action: #selector(menuOpenDetail), keyEquivalent: "")
+        // "Open GitLab Alert" read as "launch the app", which is already
+        // running: the window is what the user is actually asking for.
+        menu.addItem(withTitle: "Open Dashboard", action: #selector(menuOpenDetail), keyEquivalent: "")
             .target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "About", action: #selector(menuOpenAbout), keyEquivalent: "")
             .target = self
+        if let availableUpdateVersion {
+            menu.addItem(withTitle: "Update to \(availableUpdateVersion)…", action: #selector(menuOpenRelease), keyEquivalent: "")
+                .target = self
+        }
         menu.addItem(withTitle: "Settings…", action: #selector(menuOpenSettings), keyEquivalent: ",")
             .target = self
         menu.addItem(.separator())
@@ -146,6 +155,7 @@ final class StatusItemController {
     @objc private func menuRefresh() { onForceRefresh?() }
     @objc private func menuOpenDetail() { onOpenDetail?() }
     @objc private func menuOpenAbout() { onOpenAbout?() }
+    @objc private func menuOpenRelease() { onOpenRelease?() }
     @objc private func menuOpenSettings() { onOpenSettings?() }
     @objc private func menuQuit() { NSApp.terminate(nil) }
 }

@@ -56,14 +56,18 @@ struct DetailListView: View {
 
     private func header(for target: DetailTarget) -> some View {
         HStack(spacing: 12) {
-            let facets = DetailFacet.available(for: target.tableStyle)
+            let facets = target.tableStyle.map(DetailFacet.available(for:)) ?? []
             if facets.count > 1 {
+                // A pull-down rather than a segmented control: segmented needs
+                // room for every title at once, which this column does not
+                // have, and its selected segment was rendering without its
+                // label. A menu states the active filter in words instead.
                 Picker("Filter", selection: $filter.facet) {
                     ForEach(facets) { facet in
                         Text(facet.title).tag(facet)
                     }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.menu)
                 .labelsHidden()
                 .fixedSize()
                 .accessibilityLabel("Narrow the list")
@@ -153,6 +157,9 @@ struct DetailListView: View {
             case .repositories: repositoryTable
             case .activity: activityTable
             case .mixed: mixedTable
+            // Unreachable: DetailRootView shows ReportView instead of this
+            // view for the report, which is the only styleless target.
+            case .none: EmptyView()
             }
         }
     }
@@ -532,6 +539,9 @@ struct DetailListView: View {
         switch target {
         case .repository(let name):
             return ("shippingbox", "Nothing open", "\(name) has no open work and no recent activity.")
+        // Unreachable: the report replaces this view rather than emptying it.
+        case .report:
+            return ("chart.bar", "Nothing to report", "The report is built from recorded activity.")
         case .section(let section):
             switch section {
             case .reviewRequested:
@@ -545,7 +555,7 @@ struct DetailListView: View {
             case .repositories:
                 return ("shippingbox", "No repositories in scope", "Widen the repository scope in Settings to watch more.")
             case .activity:
-                return ("sparkles", "No activity yet", "Stars, forks and CI changes will show up here as they happen.")
+                return ("sparkles", "No activity yet", "Pipeline changes, review requests and new inbound items show up here as they happen.")
             }
         }
     }

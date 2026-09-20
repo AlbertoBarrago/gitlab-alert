@@ -8,6 +8,8 @@ import SwiftUI
 /// those four lines.
 struct AboutView: View {
 
+    let model: AppModel
+
     private static let repositoryURL = URL(string: "https://github.com/AlbertoBarrago/gitlab-alert")!
     private static let authorURL = URL(string: "https://github.com/AlbertoBarrago")!
     private static let coffeeURL = URL(string: "https://buymeacoffee.com/albz")!
@@ -40,12 +42,60 @@ struct AboutView: View {
             .padding(.bottom, 22)
 
             VStack(spacing: 8) {
+                updateRow
                 AboutLink(title: "Star it on GitHub", systemImage: "star", destination: Self.repositoryURL)
                 AboutLink(title: "Buy me a coffee", systemImage: "cup.and.saucer", destination: Self.coffeeURL)
             }
         }
         .padding(24)
         .frame(width: 300)
+    }
+}
+
+// MARK: - Updates
+
+private extension AboutView {
+
+    /// The update state, in the one place a user looks for a version number.
+    ///
+    /// "Could not check" is never rendered as "up to date": a failed check
+    /// knows nothing, and saying otherwise would keep someone on a version with
+    /// a fixed bug in it.
+    @ViewBuilder
+    var updateRow: some View {
+        if let update = model.availableUpdate {
+            Link(destination: update.releaseURL) {
+                Label("Update to \(update.latest.description)", systemImage: "arrow.down.circle")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+        } else {
+            Button {
+                Task { await model.checkForUpdates() }
+            } label: {
+                Label(updateStatusTitle, systemImage: updateStatusSymbol)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            .disabled(model.isCheckingForUpdates)
+        }
+    }
+
+    var updateStatusTitle: String {
+        if model.isCheckingForUpdates { return "Checking for updates…" }
+        if model.updateCheckFailed { return "Could not check — try again" }
+        if model.releaseCheck != nil { return "Up to date" }
+        return "Check for updates"
+    }
+
+    var updateStatusSymbol: String {
+        if model.updateCheckFailed { return "exclamationmark.triangle" }
+        if model.releaseCheck != nil { return "checkmark.circle" }
+        return "arrow.clockwise"
     }
 }
 
@@ -64,8 +114,4 @@ private struct AboutLink: View {
         .buttonStyle(.bordered)
         .controlSize(.large)
     }
-}
-
-#Preview("About") {
-    AboutView()
 }

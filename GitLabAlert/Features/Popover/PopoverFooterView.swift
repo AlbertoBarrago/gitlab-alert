@@ -67,7 +67,7 @@ struct PopoverFooterView: View {
         .font(.caption)
         .foregroundStyle(.secondary)
         .lineLimit(1)
-        .help(model.lastError?.userMessage ?? "")
+        .help(model.lastError?.userMessage ?? "How fresh this data is")
         .accessibilityElement(children: .combine)
     }
 }

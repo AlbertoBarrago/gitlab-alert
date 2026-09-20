@@ -15,8 +15,14 @@ owns every AppKit surface.
 ## Screens and navigation
 
 The application remains an accessory app without a Dock icon. The status item
-is its primary entry point; the detail and settings windows are created lazily
-and retained only while open.
+is its primary entry point; the dashboard window, the Settings window and the
+About panel are created lazily and retained only while open.
+
+The dashboard window is two columns, not three: the row inspector is an
+inspector panel that opens on a selected row and closes with it. Three columns
+demanded 840 points inside a 700-point minimum, and a column that cannot be
+collapsed meant the report — which has no rows — sat beside an empty third of
+the window.
 
 ```mermaid
 flowchart TD
@@ -27,7 +33,8 @@ flowchart TD
     Account -->|Token accepted| Status
 
     Status -->|Left click| Popover[Dashboard popover]
-    Status -->|Open GitLab Alert| Detail[Detail window]
+    Status -->|Open Dashboard| Detail[Dashboard window]
+    Status -->|About| AboutPanel[About panel]
     Status -->|Settings| Settings[Settings window]
 
     Popover --> Reviews[Review requests]
@@ -37,24 +44,27 @@ flowchart TD
     Popover -->|See all| Detail
     Activity -->|Mark as seen| LocalSeen[(Local read state)]
 
-    Detail --> Sidebar[Sections and repositories]
+    Detail --> Sidebar[Sections, repositories, report]
     Detail --> Table[Filtered, sortable table]
-    Detail --> Inspector[Selected item inspector]
+    Detail --> Report[Report of recorded activity]
+    Table -->|Row selected| Inspector[Inspector panel]
     Detail -->|Open on GitLab| Browser[Default browser]
 
     Settings --> General[General]
     Settings --> Account
     Settings --> Notifications[Notifications]
     Settings --> Repositories[Repositories]
-    Settings --> About[About]
+    Settings --> Updates[Updates]
 
     Notification[macOS notification] -->|Click| Detail
 ```
 
 The popover is optimized for a glance and shows at most five rows per expanded
-section. The detail window is the complete workspace: its sidebar chooses the
-dataset, its table owns filtering and sorting, and its inspector exposes the
-full selected item. A notification click carries an item identifier through
+section. The dashboard window is the complete workspace: its sidebar chooses the
+dataset, its table owns filtering and sorting, and its inspector panel exposes
+the full selected item. The report is a third kind of content in the same
+column — neither a row set nor a form — computed by `ReportEngine` from the
+snapshot and the activity log, so opening it costs no request. A notification click carries an item identifier through
 `AppModel.pendingSelection`; the detail view resolves it only after its dataset
 exists.
 
@@ -141,6 +151,7 @@ an event on the next launch.
 | GitLab origin and preferences | `UserDefaults` | `Preferences` |
 | Last dashboard, watermarks, activity and seen IDs | Application Support JSON | `FileStateStore` |
 | Current view and window selection | Memory only | SwiftUI views / `AppModel` |
+| Latest published version | Memory only | `AppModel.releaseCheck` |
 
 Seen event identifiers are bounded and persisted with the activity state. An
 unresolved GitLab item can therefore stay locally seen across launches. A later

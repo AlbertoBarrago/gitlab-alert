@@ -11,15 +11,18 @@ import GitLabKit
 
 // MARK: - Target
 
-/// What the sidebar has selected. A section, or one watched repository.
+/// What the sidebar has selected. A section, one watched repository, or the
+/// report — which is not a list of rows at all and replaces the table.
 enum DetailTarget: Hashable, Sendable, Identifiable {
     case section(DashboardSection)
     case repository(String)
+    case report
 
     var id: String {
         switch self {
         case .section(let section): return "section:\(section.rawValue)"
         case .repository(let name): return "repository:\(name)"
+        case .report: return "report"
         }
     }
 
@@ -27,6 +30,7 @@ enum DetailTarget: Hashable, Sendable, Identifiable {
         switch self {
         case .section(let section): return section.title
         case .repository(let name): return name
+        case .report: return "Report"
         }
     }
 
@@ -34,13 +38,16 @@ enum DetailTarget: Hashable, Sendable, Identifiable {
         switch self {
         case .section(let section): return section.symbolName
         case .repository: return "shippingbox"
+        case .report: return "chart.bar"
         }
     }
 
     /// Which set of columns suits this target. A repository shows everything
     /// about one repository, so it gets the mixed layout.
-    var tableStyle: DetailTableStyle {
+    /// `nil` for the report, which has no table to lay out.
+    var tableStyle: DetailTableStyle? {
         switch self {
+        case .report: return nil
         case .repository: return .mixed
         case .section(let section):
             switch section {
@@ -485,6 +492,10 @@ enum DetailRowFactory {
             return rows(for: section, snapshot: snapshot, activityLog: activityLog, unreadEventIDs: unreadEventIDs)
         case .repository(let name):
             return repositoryRows(name: name, snapshot: snapshot, activityLog: activityLog, unreadEventIDs: unreadEventIDs)
+        case .report:
+            // The report is computed from the same state by ReportEngine, not
+            // reduced to rows.
+            return []
         }
     }
 

@@ -42,6 +42,19 @@ if [ -z "${CERT}" ]; then
     echo "⚠️  No usable signing identity — falling back to ad-hoc."
     echo "   Consequence: the code signature changes on every build, so macOS"
     echo "   re-prompts for the Keychain item and the notification grant resets."
+    # Say what was actually there. This fell back silently for weeks because
+    # bin/.signing held a sibling project's bundle, whose common name does not
+    # match SIGNING_CN — a state that looks exactly like "no certificate yet".
+    if [ -f "bin/.signing/GitLabAlert-signing.p12" ] && [ -f "bin/.signing/passphrase.txt" ]; then
+        FOUND_CN=$(openssl pkcs12 -in bin/.signing/GitLabAlert-signing.p12 -legacy -clcerts -nokeys \
+            -passin file:bin/.signing/passphrase.txt 2>/dev/null \
+            | openssl x509 -noout -subject -nameopt multiline 2>/dev/null \
+            | awk -F' = ' '/commonName/ { print $2 }')
+        if [ -n "${FOUND_CN}" ] && [ "${FOUND_CN}" != "${SIGNING_CN}" ]; then
+            echo "   bin/.signing holds \"${FOUND_CN}\", which is not \"${SIGNING_CN}\":"
+            echo "   that bundle belongs to another app and cannot sign this one."
+        fi
+    fi
     echo "   Fix it once with:  bash bin/make-signing-cert.sh"
 fi
 

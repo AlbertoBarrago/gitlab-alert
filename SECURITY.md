@@ -76,12 +76,23 @@ If you want zero third-party avatar traffic, disable Gravatar on your instance
 (**Admin → Settings → General → Account and limit → Gravatar enabled**); the app
 then never sees a URL outside your origin.
 
+**One request goes to GitHub: the update check.** Every six hours, and when you
+ask for it from the About panel, the app calls
+`GET https://api.github.com/repos/AlbertoBarrago/gitlab-alert/releases/latest`
+to compare the published tag with this build's version. It carries **no token,
+no account, no identifier and no payload** — the request is anonymous, and the
+test suite asserts that no credential header is attached. Turning off **Settings
+→ General → Check for new versions automatically** stops it entirely; the About
+panel's manual check still works, because asking explicitly is consent. A tag
+the app cannot parse is ignored rather than announced, and a release URL that is
+not https is refused. See `GitLabKit/Sources/GitLabKit/Update/ReleaseChecker.swift`.
+
 Nothing else goes out. There is **no** telemetry, analytics, crash reporting,
-licensing check, update check or "phone home" of any kind, and no third-party
-SDK that could add one: both `Package.swift` files declare `dependencies: []`.
-The only other network activity the app can cause is opening a link in your
-default browser, and it refuses to open any URL that is not https on the
-configured host (`AppModel.openOnGitLab`).
+licensing check or "phone home" of any kind, and no third-party SDK that could
+add one: both `Package.swift` files declare `dependencies: []`. The only other
+network activity the app can cause is opening a link in your default browser,
+and it refuses to open any URL that is not https on the configured host
+(`AppModel.openOnGitLab`).
 
 ## Transport
 
@@ -182,6 +193,8 @@ enable that, through `SMAppService` (`LoginItem.swift`).
 - GitLab instances hosted under a URL sub-path are not supported.
 - The app cannot restrict what a `read_api` token can reach; scope the token on
   the GitLab side if your policy requires it.
+- The update check discloses this Mac's IP address to GitHub, as any request
+  would. Turn it off if that is not acceptable in your environment.
 
 ## Verifying these claims
 
@@ -190,6 +203,7 @@ The checks a reviewer usually wants, in the order they usually want them:
 ```sh
 grep -rn "PRIVATE-TOKEN\|Authorization" --include="*.swift" .   # every use of the credential
 grep -rn "http" --include="*.swift" GitLabKit/Sources           # every outbound call
+grep -rn "api.github.com" --include="*.swift" .                 # the one non-GitLab host
 grep -n "dependencies" Package.swift GitLabKit/Package.swift    # third-party code
 cat GitLabAlert.entitlements                                    # sandbox surface
 bash bin/test.sh                                                # the suite, including AvatarRequestTests

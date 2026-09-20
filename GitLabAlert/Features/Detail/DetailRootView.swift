@@ -30,27 +30,16 @@ struct DetailRootView: View {
 
     var body: some View {
         NavigationSplitView {
-            DetailSidebarView(
-                model: model,
-                target: $target,
-                repositoryQuery: $repositoryQuery
-            )
-        } content: {
-            DetailListView(
-                model: model,
-                target: target,
-                rows: visibleRows,
-                unfilteredCount: rows.count,
-                filter: $filter,
-                searchQuery: $searchQuery,
-                selection: $selectedRowID,
-                onRevealRepository: reveal(repository:)
-            )
+            sidebar
         } detail: {
-            DetailInspectorView(model: model, row: selectedRow)
+            content
+                .inspector(isPresented: showsInspector) {
+                    DetailInspectorView(model: model, row: selectedRow)
+                        .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
+                }
         }
         .navigationSplitViewStyle(.balanced)
-        .frame(minWidth: 700, minHeight: 420)
+        .frame(minWidth: 760, minHeight: 520)
         .task(id: datasetKey) { rebuildRows() }
         .task(id: FilterKey(version: rowsVersion, filter: filter)) { applyFilter() }
         .task(id: searchQuery) { await debounceSearch() }
@@ -65,7 +54,57 @@ struct DetailRootView: View {
         .onChange(of: target) { resetForNewTarget() }
     }
 
+    // MARK: - Content
+
+    /// What the one content column shows. A row set, a report, or a form: the
+    /// window shows a row set or the report; Settings keep a window of their
+    /// own, because preferences are not data.
+    @ViewBuilder
+    private var content: some View {
+        switch target {
+        case .report:
+            ReportView(model: model)
+        default:
+            DetailListView(
+                model: model,
+                target: target,
+                rows: visibleRows,
+                unfilteredCount: rows.count,
+                filter: $filter,
+                searchQuery: $searchQuery,
+                selection: $selectedRowID,
+                onRevealRepository: reveal(repository:)
+            )
+        }
+    }
+
+    /// The inspector opens on a selected row and nowhere else: a report has no
+    /// rows and a form is not something you inspect, so on those it would be an
+    /// empty panel taking a third of the window.
+    private var showsInspector: Binding<Bool> {
+        Binding(
+            get: {
+                guard selectedRow != nil else { return false }
+                switch target {
+                case .section, .repository: return true
+                case .report, .none: return false
+                }
+            },
+            set: { isShown in
+                if !isShown { selectedRowID = nil }
+            }
+        )
+    }
+
     // MARK: - Derived
+
+    private var sidebar: some View {
+        DetailSidebarView(
+            model: model,
+            target: $target,
+            repositoryQuery: $repositoryQuery
+        )
+    }
 
     private var selectedRow: DetailRow? {
         guard let selectedRowID else { return nil }
@@ -393,8 +432,8 @@ enum DetailPreviewFixtures {
 
     static let activityLog: [ActivityEvent] = [
         ActivityEvent(
-            id: "star:albz/gitlab-alert:1",
-            kind: .star,
+            id: "review:albz/gitlab-alert:1",
+            kind: .reviewRequested,
             occurredAt: now.addingTimeInterval(-900),
             repository: "albz/gitlab-alert",
             delta: 3,
@@ -410,8 +449,8 @@ enum DetailPreviewFixtures {
             url: URL(string: "https://gitlab.com/albz/gitlab-alert/actions")!
         ),
         ActivityEvent(
-            id: "fork:albz/dockdock:1",
-            kind: .fork,
+            id: "inbound:albz/dockdock:1",
+            kind: .inboundMergeRequest,
             occurredAt: now.addingTimeInterval(-86_400 * 1.5),
             repository: "albz/dockdock",
             actors: [stranger],
@@ -419,7 +458,7 @@ enum DetailPreviewFixtures {
         )
     ]
 
-    static let unreadEventIDs: Set<String> = ["star:albz/gitlab-alert:1"]
+    static let unreadEventIDs: Set<String> = ["review:albz/gitlab-alert:1"]
 
     static func rows(for target: DetailTarget) -> [DetailRow] {
         DetailRowFactory.rows(

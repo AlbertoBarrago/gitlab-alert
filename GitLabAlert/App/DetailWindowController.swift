@@ -14,13 +14,18 @@ final class DetailWindowController: NSWindowController, NSWindowDelegate {
 
     convenience init<Content: View>(content: Content) {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 600),
-            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
+            contentRect: NSRect(x: 0, y: 0, width: 980, height: 640),
+            // No `.fullSizeContentView`: this window has an ordinary title bar
+            // with a title in it, so extending the content under the bar only
+            // hid the sidebar's first row behind it.
+            styleMask: [.titled, .closable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "GitLab Alert"
-        window.contentMinSize = NSSize(width: 700, height: 420)
+        // Sidebar 220 + content 420 + breathing room: the Settings forms
+        // live here too now, and they are wider than a table row.
+        window.contentMinSize = NSSize(width: 760, height: 520)
         window.contentViewController = NSHostingController(rootView: content)
         window.isReleasedWhenClosed = false
         window.setFrameAutosaveName("GitLabAlertDetailWindow")

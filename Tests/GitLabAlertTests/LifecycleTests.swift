@@ -182,7 +182,7 @@ struct LifecycleTests {
 
     @Test func replacingAccountClearsHistoryBeforeVerifying() async throws {
         let api = ControlledAPI(), store = MemoryStore(), recorder = Recorder()
-        let event = ActivityEvent(id: "old", kind: .star, occurredAt: Date(), repository: "alice/repo")
+        let event = ActivityEvent(id: "old", kind: .checksFailed, occurredAt: Date(), repository: "alice/repo")
         try store.save(PersistedState(lastSnapshot: snapshot(), activityLog: [event], hasBaseline: true))
         let poller = scheduler(api: api, store: store, recorder: recorder)
         let app = model(api: api, store: store)
@@ -206,7 +206,7 @@ struct LifecycleTests {
 
     @Test func activityStaysUnreadUntilExplicitlyMarkedSeen() async throws {
         let api = ControlledAPI(), store = MemoryStore(), recorder = Recorder()
-        let event = ActivityEvent(id: "unread", kind: .star, occurredAt: Date(), repository: "alice/repo")
+        let event = ActivityEvent(id: "unread", kind: .checksFailed, occurredAt: Date(), repository: "alice/repo")
         try store.save(PersistedState(lastSnapshot: snapshot(), activityLog: [event], hasBaseline: true))
         let poller = scheduler(api: api, store: store, recorder: recorder)
         let app = model(api: api, store: store)
