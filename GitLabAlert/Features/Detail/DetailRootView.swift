@@ -36,16 +36,22 @@ struct DetailRootView: View {
                 repositoryQuery: $repositoryQuery
             )
         } content: {
-            DetailListView(
-                model: model,
-                target: target,
-                rows: visibleRows,
-                unfilteredCount: rows.count,
-                filter: $filter,
-                searchQuery: $searchQuery,
-                selection: $selectedRowID,
-                onRevealRepository: reveal(repository:)
-            )
+            // The report is a summary, not a row set: it replaces the table
+            // instead of being filtered, searched and sorted like one.
+            if target == .report {
+                ReportView(model: model)
+            } else {
+                DetailListView(
+                    model: model,
+                    target: target,
+                    rows: visibleRows,
+                    unfilteredCount: rows.count,
+                    filter: $filter,
+                    searchQuery: $searchQuery,
+                    selection: $selectedRowID,
+                    onRevealRepository: reveal(repository:)
+                )
+            }
         } detail: {
             DetailInspectorView(model: model, row: selectedRow)
         }

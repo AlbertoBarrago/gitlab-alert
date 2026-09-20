@@ -56,7 +56,7 @@ struct DetailListView: View {
 
     private func header(for target: DetailTarget) -> some View {
         HStack(spacing: 12) {
-            let facets = DetailFacet.available(for: target.tableStyle)
+            let facets = target.tableStyle.map(DetailFacet.available(for:)) ?? []
             if facets.count > 1 {
                 Picker("Filter", selection: $filter.facet) {
                     ForEach(facets) { facet in
@@ -153,6 +153,9 @@ struct DetailListView: View {
             case .repositories: repositoryTable
             case .activity: activityTable
             case .mixed: mixedTable
+            // Unreachable: DetailRootView shows ReportView instead of this
+            // view for the report, which is the only styleless target.
+            case .none: EmptyView()
             }
         }
     }
@@ -532,6 +535,9 @@ struct DetailListView: View {
         switch target {
         case .repository(let name):
             return ("shippingbox", "Nothing open", "\(name) has no open work and no recent activity.")
+        // Unreachable: the report replaces this view rather than emptying it.
+        case .report:
+            return ("chart.bar", "Nothing to report", "The report is built from recorded activity.")
         case .section(let section):
             switch section {
             case .reviewRequested:
