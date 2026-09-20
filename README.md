@@ -187,7 +187,7 @@ Publishing is driven by a tag. Bump `CFBundleShortVersionString` in `Info.plist`
 (and the download links in `README.md` and `index.html`), then:
 
 ```sh
-git tag v0.1.5 && git push origin v0.1.5
+git tag v0.1.6 && git push origin v0.1.6
 ```
 
 `.github/workflows/release-macos.yml` runs the tests, builds, signs, packages the
