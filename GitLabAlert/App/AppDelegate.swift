@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var notifier: UserNotificationNotifier!
     private let notificationRouter = NotificationRouter()
 
+    private var avatarLoader: AvatarLoader!
     private var statusItem: StatusItemController!
     private var popover: PopoverController!
     private var detailWindow: DetailWindowController?
@@ -108,12 +109,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
 
+        // Every SwiftUI surface gets it through the environment, so no view
+        // has to reach for the token to draw a face.
+        avatarLoader = AvatarLoader(preferences: preferences, tokenStore: tokenStore)
+
         model.attach(scheduler: scheduler)
         model.refreshLoginItemState()
     }
 
     private func buildInterface() {
-        popover = PopoverController(content: PopoverRootView(model: model))
+        popover = PopoverController(
+            content: PopoverRootView(model: model).environment(\.avatarLoader, avatarLoader)
+        )
         popover.onOpen = { [weak self] in self?.model.popoverDidOpen() }
         popover.onClose = { [weak self] in self?.model.popoverDidClose() }
         popover.onMaximumHeightChange = { [weak self] height in
@@ -179,7 +186,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showDetailWindow() {
         if detailWindow == nil {
-            let controller = DetailWindowController(content: DetailRootView(model: model))
+            let controller = DetailWindowController(
+                content: DetailRootView(model: model).environment(\.avatarLoader, avatarLoader)
+            )
             controller.onClose = { [weak self] in
                 self?.detailWindow = nil
             }
@@ -190,7 +199,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showSettingsWindow() {
         if settingsWindow == nil {
-            let controller = SettingsWindowController(content: SettingsView(model: model))
+            let controller = SettingsWindowController(
+                content: SettingsView(model: model).environment(\.avatarLoader, avatarLoader)
+            )
             controller.onClose = { [weak self] in
                 self?.settingsWindow = nil
                 self?.statusItem.isVisible = self?.preferences.statusItemVisible ?? true

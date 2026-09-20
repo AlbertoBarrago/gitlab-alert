@@ -111,6 +111,9 @@ Create a token at the configured instance's
 No write scope is needed or requested. The token is stored in the macOS
 Keychain for that Mac only, is never written to disk in plaintext, never shown
 again after saving, and is sent only to the configured GitLab instance.
+[`SECURITY.md`](SECURITY.md) and [`PRIVACY.md`](PRIVACY.md) document exactly
+which requests leave the Mac, what is stored where, and how to verify both — if
+you need to get the app authorized before pasting a token, start there.
 
 The default repository scope includes projects you are a member of that were
 active in the past 90 days, excluding forks. The Repositories pane lets you
@@ -156,6 +159,8 @@ GitLabAlert/         app sources: AppKit shell, SwiftUI views, settings
 GitLabKit/           local SwiftPM package: REST client and testable logic
 bin/                 build, run, release and signing scripts
 docs/                architecture and manual QA checklist
+SECURITY.md          threat model, credential handling, network egress
+PRIVACY.md           what is collected (nothing) and what is stored locally
 Info.plist           copied into the bundle by the build script
 Resources/           loose resources, read through Bundle.main
 ```
