@@ -15,7 +15,10 @@ final class DetailWindowController: NSWindowController, NSWindowDelegate {
     convenience init<Content: View>(content: Content) {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 900, height: 600),
-            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
+            // No `.fullSizeContentView`: this window has an ordinary title bar
+            // with a title in it, so extending the content under the bar only
+            // hid the sidebar's first row behind it.
+            styleMask: [.titled, .closable, .resizable],
             backing: .buffered,
             defer: false
         )

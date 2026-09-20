@@ -58,12 +58,16 @@ struct DetailListView: View {
         HStack(spacing: 12) {
             let facets = target.tableStyle.map(DetailFacet.available(for:)) ?? []
             if facets.count > 1 {
+                // A pull-down rather than a segmented control: segmented needs
+                // room for every title at once, which this column does not
+                // have, and its selected segment was rendering without its
+                // label. A menu states the active filter in words instead.
                 Picker("Filter", selection: $filter.facet) {
                     ForEach(facets) { facet in
                         Text(facet.title).tag(facet)
                     }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.menu)
                 .labelsHidden()
                 .fixedSize()
                 .accessibilityLabel("Narrow the list")

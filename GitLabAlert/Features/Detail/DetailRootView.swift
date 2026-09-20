@@ -29,31 +29,36 @@ struct DetailRootView: View {
     @State private var pendingItemID: String?
 
     var body: some View {
-        NavigationSplitView {
-            DetailSidebarView(
-                model: model,
-                target: $target,
-                repositoryQuery: $repositoryQuery
-            )
-        } content: {
-            // The report is a summary, not a row set: it replaces the table
-            // instead of being filtered, searched and sorted like one.
+        // Two layouts, not one with a hidden column: a three-column split
+        // cannot collapse its detail column, and the report has nothing to put
+        // there — no rows, so nothing to inspect. Asking for a two-column
+        // split is the only way to stop drawing an empty third of the window.
+        Group {
             if target == .report {
-                ReportView(model: model)
+                NavigationSplitView {
+                    sidebar
+                } detail: {
+                    ReportView(model: model)
+                        .navigationSplitViewColumnWidth(min: 380, ideal: 560)
+                }
             } else {
-                DetailListView(
-                    model: model,
-                    target: target,
-                    rows: visibleRows,
-                    unfilteredCount: rows.count,
-                    filter: $filter,
-                    searchQuery: $searchQuery,
-                    selection: $selectedRowID,
-                    onRevealRepository: reveal(repository:)
-                )
+                NavigationSplitView {
+                    sidebar
+                } content: {
+                    DetailListView(
+                        model: model,
+                        target: target,
+                        rows: visibleRows,
+                        unfilteredCount: rows.count,
+                        filter: $filter,
+                        searchQuery: $searchQuery,
+                        selection: $selectedRowID,
+                        onRevealRepository: reveal(repository:)
+                    )
+                } detail: {
+                    DetailInspectorView(model: model, row: selectedRow)
+                }
             }
-        } detail: {
-            DetailInspectorView(model: model, row: selectedRow)
         }
         .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 700, minHeight: 420)
@@ -72,6 +77,14 @@ struct DetailRootView: View {
     }
 
     // MARK: - Derived
+
+    private var sidebar: some View {
+        DetailSidebarView(
+            model: model,
+            target: $target,
+            repositoryQuery: $repositoryQuery
+        )
+    }
 
     private var selectedRow: DetailRow? {
         guard let selectedRowID else { return nil }
