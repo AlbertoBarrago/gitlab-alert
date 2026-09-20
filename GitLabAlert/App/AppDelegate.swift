@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var avatarLoader: AvatarLoader!
     private var statusItem: StatusItemController!
     private var popover: PopoverController!
+    private var aboutWindow: AboutWindowController?
     private var detailWindow: DetailWindowController?
     private var settingsWindow: SettingsWindowController?
 
@@ -135,6 +136,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         statusItem.onForceRefresh = { [weak self] in self?.model.refresh() }
         statusItem.onOpenDetail = { [weak self] in self?.showDetailWindow() }
+        statusItem.onOpenAbout = { [weak self] in self?.showAboutWindow() }
         statusItem.onOpenSettings = { [weak self] in self?.showSettingsWindow() }
 
         model.openDetailWindow = { [weak self] in self?.showDetailWindow() }
@@ -195,6 +197,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             detailWindow = controller
         }
         detailWindow?.present()
+    }
+
+    /// About is a panel of its own, not a Settings pane: it is read once and
+    /// dismissed, and it has nothing to configure.
+    private func showAboutWindow() {
+        if aboutWindow == nil {
+            let controller = AboutWindowController(content: AboutView())
+            controller.onClose = { [weak self] in self?.aboutWindow = nil }
+            aboutWindow = controller
+        }
+        aboutWindow?.present()
     }
 
     @objc private func showSettingsWindow() {
