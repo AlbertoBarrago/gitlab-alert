@@ -9,7 +9,6 @@ enum SettingsTab: String, Hashable, CaseIterable, Identifiable {
     case account
     case notifications
     case repositories
-    case about
 
     var id: String { rawValue }
 
@@ -19,7 +18,6 @@ enum SettingsTab: String, Hashable, CaseIterable, Identifiable {
         case .account: return "Account"
         case .notifications: return "Notifications"
         case .repositories: return "Repositories"
-        case .about: return "About"
         }
     }
 
@@ -30,7 +28,6 @@ enum SettingsTab: String, Hashable, CaseIterable, Identifiable {
         case .account: return "person.crop.circle"
         case .notifications: return "bell.badge"
         case .repositories: return "shippingbox"
-        case .about: return "info.circle"
         }
     }
 }
@@ -97,8 +94,6 @@ struct SettingsView: View {
             NotificationSettingsView(model: model)
         case .repositories:
             RepositoryPickerView(model: model)
-        case .about:
-            AboutSettingsView()
         }
     }
 }

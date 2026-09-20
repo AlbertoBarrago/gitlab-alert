@@ -31,6 +31,7 @@ final class StatusItemController {
     var onToggle: (() -> Void)?
     var onForceRefresh: (() -> Void)?
     var onOpenDetail: (() -> Void)?
+    var onOpenAbout: (() -> Void)?
     var onOpenSettings: (() -> Void)?
 
     private let statusItem: NSStatusItem
@@ -127,6 +128,8 @@ final class StatusItemController {
         menu.addItem(withTitle: "Open GitLab Alert", action: #selector(menuOpenDetail), keyEquivalent: "")
             .target = self
         menu.addItem(.separator())
+        menu.addItem(withTitle: "About", action: #selector(menuOpenAbout), keyEquivalent: "")
+            .target = self
         menu.addItem(withTitle: "Settings…", action: #selector(menuOpenSettings), keyEquivalent: ",")
             .target = self
         menu.addItem(.separator())
@@ -142,6 +145,7 @@ final class StatusItemController {
 
     @objc private func menuRefresh() { onForceRefresh?() }
     @objc private func menuOpenDetail() { onOpenDetail?() }
+    @objc private func menuOpenAbout() { onOpenAbout?() }
     @objc private func menuOpenSettings() { onOpenSettings?() }
     @objc private func menuQuit() { NSApp.terminate(nil) }
 }
