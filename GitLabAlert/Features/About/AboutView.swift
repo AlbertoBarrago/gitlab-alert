@@ -31,7 +31,7 @@ struct AboutView: View {
                 VStack(spacing: 3) {
                     Text("GitLab Alert")
                         .font(.title2.weight(.semibold))
-                    Text("Version \(version) · MIT")
+                    Text("Version \(version) · MIT (modified)")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }

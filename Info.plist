@@ -53,6 +53,6 @@
     <string>public.app-category.developer-tools</string>
 
     <key>NSHumanReadableCopyright</key>
-    <string>GitLab Alert — released under the MIT license.</string>
+    <string>GitLab Alert. Released under a modified MIT license (no resale).</string>
 </dict>
 </plist>
