@@ -77,11 +77,14 @@ If you want zero third-party avatar traffic, disable Gravatar on your instance
 then never sees a URL outside your origin.
 
 **One request goes to GitHub: the update check.** Every six hours, and when you
-ask for it from the About panel, the app calls
-`GET https://api.github.com/repos/AlbertoBarrago/gitlab-alert/releases/latest`
-to compare the published tag with this build's version. It carries **no token,
-no account, no identifier and no payload** — the request is anonymous, and the
-test suite asserts that no credential header is attached. Turning off **Settings
+ask for it from the About panel, Sparkle fetches
+`https://github.com/AlbertoBarrago/gitlab-alert/releases/latest/download/appcast.xml`,
+the signed release feed, and compares it with this build's version. It carries
+**no token, no account, no identifier and no payload** — the request is
+anonymous. An update is applied only if its EdDSA signature verifies against
+`SUPublicEDKey` in `Info.plist` and the new bundle carries the same signing
+identity as the running one: a tampered or substituted archive is refused, not
+installed. Turning off **Settings
 → General → Check for new versions automatically** stops it entirely; the About
 panel's manual check still works, because asking explicitly is consent. A tag
 the app cannot parse is ignored rather than announced, and a release URL that is
@@ -112,14 +115,15 @@ and it refuses to open any URL that is not https on the configured host
 | Data | Location | Protection |
 | --- | --- | --- |
 | Token | login Keychain | Keychain, device-only, app identity bound |
-| GitLab origin, polling intervals, repository scope, UI preferences | `<container>/Library/Preferences/com.alBz.GitLabAlert.plist` | sandbox container, owner-only |
-| Last dashboard, pipeline watermarks, activity log, seen event IDs | `<container>/Library/Application Support/GitLabAlert/state.json` | sandbox container, directory `0700`, file `0600`, written atomically |
+| GitLab origin, polling intervals, repository scope, UI preferences | `~/Library/Preferences/com.alBz.GitLabAlert.plist` | owner-only |
+| Last dashboard, pipeline watermarks, activity log, seen event IDs | `~/Library/Application Support/GitLabAlert/state.json` | directory `0700`, file `0600`, written atomically |
 | Window and view selection | memory only | — |
 
-`<container>` is `~/Library/Containers/com.alBz.GitLabAlert/Data`: the app is
-sandboxed, so everything it writes stays inside its own container and it cannot
-read the rest of your home directory. The Keychain item is the only thing it
-owns outside it.
+Up to 0.1.7 these lived inside the App Sandbox container at
+`~/Library/Containers/com.alBz.GitLabAlert/Data`. From 0.1.8 the app is no
+longer sandboxed (see § Process isolation), so they sit in the usual per-user
+locations; the first 0.1.8 launch imports what the container held, and leaves
+the container in place rather than deleting it.
 
 `state.json` is plain JSON and contains **no credential**, but it does contain
 data fetched from GitLab: titles of merge requests and issues, project names,
@@ -150,29 +154,48 @@ not depend on the app.
 
 ## Process isolation
 
-The app runs in the macOS App Sandbox with exactly two entitlements
-(`GitLabAlert.entitlements`):
+The app runs under the **hardened runtime**, and from 0.1.8 **not** in the App
+Sandbox. It has one entitlement (`GitLabAlert.entitlements`):
 
-- `com.apple.security.app-sandbox`
-- `com.apple.security.network.client` — outgoing connections only
+- `com.apple.security.cs.disable-library-validation`
 
-No file system access beyond its own container, no incoming network, no camera,
+Both facts follow from in-app updates. Sparkle replaces the bundle in place,
+which a sandboxed app can only do through Sparkle's two XPC services, and those
+are more moving parts than the containment buys in a bundle that is assembled
+and signed by a shell script. Library validation then has to be off because the
+hardened runtime requires every loaded library to share the process's Team ID,
+and a self-signed certificate has none: with it on, the embedded
+`Sparkle.framework` is refused and the app does not launch.
+
+What this changes honestly: the app can now read and write your home directory
+as your user, where before it could not leave its container. What it actually
+does with that is unchanged and inspectable — one preferences plist, one state
+file, one Keychain item.
+
+There is still no incoming network, no camera,
 microphone, contacts, calendar, location or Apple Events. It is a menu bar
 accessory (`LSUIElement`) with no Dock icon, and it starts at login only if you
 enable that, through `SMAppService` (`LoginItem.swift`).
 
 ## Supply chain and provenance
 
-- **No third-party code.** Zero package dependencies; every line that ships is
-  in this repository.
+- **One third-party dependency.** [Sparkle](https://github.com/sparkle-project/Sparkle),
+  since 0.1.8, for in-app updates: it is resolved by SwiftPM as a signed
+  xcframework, embedded in `Contents/Frameworks` and re-signed with this
+  project's identity by `bin/embed-sparkle.sh`. Everything else that ships is in
+  this repository. An update it offers is applied only against the EdDSA public
+  key pinned in `Info.plist`, whose private half never leaves the release
+  workflow's secret.
 - **Reviewable surface.** The network client, credential handling, persistence
   and diffing live in `GitLabKit/`, a UI-free local package with its own tests.
 - **Builds from source.** `bash bin/make-app.sh` produces the app with the Swift
   toolchain and `codesign`; Xcode is not required.
 - **Releases** are built by `.github/workflows/release-macos.yml` from a tag,
   after the test suite passes. The workflow refuses to publish if the tag and
-  `Info.plist` disagree or if the signing identity is missing, so a release is
-  never ad-hoc signed. `SHA256SUMS.txt` is published with the DMG and the ZIP.
+  `Info.plist` disagree, if the signing identity is missing, so a release is
+  never ad-hoc signed, or if the appcast comes out unsigned.
+  `SHA256SUMS.txt` is published with the DMG and the ZIP, and `appcast.xml`
+  alongside them is the update feed itself.
 - **Signing.** Releases are signed with the project's stable self-signed
   certificate. They are **not Apple-notarized**, which requires a paid Developer
   ID: on first launch macOS blocks the app until it is approved under
@@ -181,7 +204,7 @@ enable that, through `SMAppService` (`LoginItem.swift`).
   about the distribution channel, not about what the app does.
 - **Single maintainer.** This is a single-owner project. There is no second
   reviewer on commits, which is a fact worth weighing: the mitigation offered
-  here is a small, dependency-free, auditable codebase and a build you can
+  here is a small, nearly dependency-free, auditable codebase and a build you can
   reproduce yourself.
 
 ## Known limitations
@@ -205,7 +228,7 @@ grep -rn "PRIVATE-TOKEN\|Authorization" --include="*.swift" .   # every use of t
 grep -rn "http" --include="*.swift" GitLabKit/Sources           # every outbound call
 grep -rn "api.github.com" --include="*.swift" .                 # the one non-GitLab host
 grep -n "dependencies" Package.swift GitLabKit/Package.swift    # third-party code
-cat GitLabAlert.entitlements                                    # sandbox surface
+cat GitLabAlert.entitlements                                    # entitlement surface
 bash bin/test.sh                                                # the suite, including AvatarRequestTests
 ```
 

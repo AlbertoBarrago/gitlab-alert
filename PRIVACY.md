@@ -34,17 +34,21 @@ reviewer.
 | Work items | titles, authors, reviewers, URLs and states of merge requests and issues assigned to or authored by you | local state file | No |
 | Projects | names, visibility, star and fork counts, last pipeline state | local state file | No |
 | Preferences | GitLab origin, polling intervals, repository scope, UI choices, whether update checks are on | `UserDefaults` | No |
-| Update check result | the latest published version number | memory only | No — the check asks GitHub for a version, and sends nothing about you |
+| Update check result | the latest published version number | memory only | No — the check reads a signed feed on GitHub, and sends nothing about you |
 | Notification state | watermarks, seen event IDs | local state file | No |
 
-The app is sandboxed, so everything it writes stays in its own container at
-`~/Library/Containers/com.alBz.GitLabAlert/Data`:
+Everything the app writes, it writes in three places:
 
-- `<container>/Library/Application Support/GitLabAlert/state.json` — directory
-  `0700`, file `0600`, plain JSON, no credential in it.
-- `<container>/Library/Preferences/com.alBz.GitLabAlert.plist` — preferences.
-- Login Keychain — the token only, and the only thing the app owns outside the
-  container.
+- `~/Library/Application Support/GitLabAlert/state.json` — directory `0700`,
+  file `0600`, plain JSON, no credential in it.
+- `~/Library/Preferences/com.alBz.GitLabAlert.plist` — preferences.
+- Login Keychain — the token, and nothing else.
+
+Up to 0.1.7 the app was sandboxed and the first two lived inside
+`~/Library/Containers/com.alBz.GitLabAlert/Data`. From 0.1.8 it is not
+sandboxed, so that it can install its own updates; the first launch imports the
+container's values and leaves the container where it is. `SECURITY.md`
+§ Process isolation says what that trade costs.
 
 ## Third parties
 
@@ -60,13 +64,14 @@ because they depend on how your instance is configured:
   would when you view the same page on GitLab. Disabling Gravatar on your
   instance removes the case entirely.
 - **The update check.** Every six hours, and on demand from the About panel, the
-  app asks GitHub which release is the latest, so it can tell you when you are
-  running an old version. The request carries no token, no account and no
-  identifier: GitHub sees an anonymous request and your IP address, exactly as
-  it would if you opened the releases page in a browser. Nothing about your
-  GitLab instance, your work or your account is sent. **Settings → General →
-  Check for new versions automatically** turns it off, after which the app makes
-  no request to GitHub at all.
+  app reads the signed release feed on GitHub, so it can offer you a newer
+  version and install it in place. The request carries no token, no account and
+  no identifier: GitHub sees an anonymous request and your IP address, exactly
+  as it would if you opened the releases page in a browser. Nothing about your
+  GitLab instance, your work or your account is sent, and an update that does
+  not carry a valid signature is refused. **Settings → General → Check for new
+  versions automatically** turns it off, after which the app makes no request to
+  GitHub at all.
 - **Opening a link.** Clicking an item opens it in your default browser. The app
   refuses to open anything that is not https on your configured host.
 

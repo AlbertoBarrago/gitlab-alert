@@ -180,7 +180,7 @@ and persisted read state. The menu bar UI still needs manual verification; see
 
 ```
 GitLabAlert/         app sources: AppKit shell, SwiftUI views, settings
-GitLabKit/           local SwiftPM package: REST client, report engine, update check
+GitLabKit/           local SwiftPM package: REST client, report engine, diffing
 bin/                 build, run, release and signing scripts
 docs/                architecture and manual QA checklist
 SECURITY.md          threat model, credential handling, network egress
