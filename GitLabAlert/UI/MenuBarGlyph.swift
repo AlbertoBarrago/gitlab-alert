@@ -145,14 +145,17 @@ enum MenuBarGlyph {
         // that the taper below them still reads as a snout. Holes rather than
         // strokes, so the template image keeps working in both menu bar
         // appearances — hence the even-odd winding rule.
-        // Sized for the menu bar, not for the artwork: at 1.7pt the holes
-        // closed up once the 18pt canvas was scaled down into the bar, so they
-        // are wider and further apart than they would be on a large rendering.
+        // Sized and placed for the menu bar, not for the artwork: at 1.7pt the
+        // holes closed up once the 18pt canvas was scaled down into the bar, so
+        // they are wider and further apart than they would be on a large
+        // rendering. The height was settled by looking at the bar itself; much
+        // below 7.0 and they reach the taper of the muzzle, where at 18pt the
+        // outer edge starts eating into them.
         let eyeDiameter: CGFloat = 2.2
-        for centreX in [9.07 - 2.15, 9.07 + 2.15] {
+        for centreX in [9.07 - 2.45, 9.07 + 2.45] {
             path.appendOval(in: NSRect(
                 x: centreX - eyeDiameter / 2,
-                y: 8.8 - eyeDiameter / 2,
+                y: 7.5 - eyeDiameter / 2,
                 width: eyeDiameter,
                 height: eyeDiameter
             ))
