@@ -225,4 +225,13 @@ overrides that, which is how the workflow keeps the runner out of the way.
 
 ## License
 
-MIT with one added restriction: the Software may not be sold or resold, and may not be included in a paid product or service, without prior written permission. See [LICENSE](LICENSE).
+MIT with one added restriction: the Software may not be sold or resold, and may
+not be included in a paid product or service, without prior written permission.
+See [LICENSE](LICENSE).
+
+Everything else stays open: use it privately or at work, fork it, modify it and
+redistribute it, at no cost and with nothing to sign. The restriction exists to
+stop repackaged copies being sold, not to limit use.
+
+Development is unfunded. If the app saves you time, you can
+[buy me a coffee](https://buymeacoffee.com/albz).
