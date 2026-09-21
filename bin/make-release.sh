@@ -86,8 +86,12 @@ if [ -d "Resources" ]; then
     cp -R Resources/. "${RESOURCES}/"
 fi
 
+bash bin/embed-sparkle.sh "${APP}" "${CERT}"
+
+# No --deep: Sparkle's nested bundles are already signed, in order, by
+# embed-sparkle.sh, and --deep would re-sign them with this app's entitlements.
 echo "▶ Signing (${CERT})…"
-codesign --force --deep --sign "${CERT}" \
+codesign --force --sign "${CERT}" \
     --options runtime \
     --entitlements "${BUNDLE_NAME}.entitlements" \
     "${APP}"

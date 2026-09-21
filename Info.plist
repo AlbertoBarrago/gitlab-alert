@@ -42,6 +42,22 @@
     <key>CFBundleVersion</key>
     <string>8</string>
 
+    <!-- Sparkle. The feed is the appcast attached to every GitHub release, so
+         there is no separate host to keep alive; SUPublicEDKey is the public
+         half of the EdDSA key the release workflow signs with, and an update
+         that does not verify against it is refused. -->
+    <key>SUFeedURL</key>
+    <string>https://github.com/AlbertoBarrago/gitlab-alert/releases/latest/download/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>xmgA1yzr6yAQIueqrIqCCFLCjb2HzPjuiqmZuK9ufds=</string>
+    <!-- No first-run prompt: the preference already exists in Settings, on by
+         default, and is pushed into Sparkle at launch. -->
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <!-- Six hours, the cadence the app used before Sparkle. -->
+    <key>SUScheduledCheckInterval</key>
+    <integer>21600</integer>
+
     <!-- Allineato a platforms: [.macOS(.v14)] in Package.swift -->
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>

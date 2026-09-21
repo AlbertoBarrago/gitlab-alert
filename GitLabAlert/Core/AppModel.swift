@@ -49,13 +49,6 @@ final class AppModel {
     /// decide when the dashboard list genuinely needs to scroll.
     private(set) var popoverMaximumHeight: CGFloat = 600
 
-    /// The result of the last release check, whatever it said.
-    private(set) var releaseCheck: ReleaseCheck?
-    private(set) var isCheckingForUpdates = false
-    /// Set when the last check could not answer — rate limited, offline, or a
-    /// payload this build cannot read. Shown as "could not check", never as
-    /// "up to date": those are not the same thing.
-    private(set) var updateCheckFailed = false
 
     /// Consumed by the detail window when it opens.
     var pendingSelection: DetailSelection?
@@ -72,8 +65,6 @@ final class AppModel {
     private var api: any GitLabAPI
     private let apiFactory: @Sendable (URL) -> any GitLabAPI
     private let loginItem: LoginItem
-    private let releaseChecker: GitHubReleaseChecker?
-    private var updateWatch: Task<Void, Never>?
     private let log = Logger(subsystem: "com.alBz.GitLabAlert", category: "model")
     private weak var scheduler: PollScheduler?
     private var accountTask: Task<Void, Never>?
@@ -100,10 +91,8 @@ final class AppModel {
         tokenStore: any TokenStore,
         api: any GitLabAPI,
         apiFactory: @escaping @Sendable (URL) -> any GitLabAPI,
-        loginItem: LoginItem = LoginItem(),
-        releaseChecker: GitHubReleaseChecker? = nil
+        loginItem: LoginItem = LoginItem()
     ) {
-        self.releaseChecker = releaseChecker
         self.preferences = preferences
         self.tokenStore = tokenStore
         self.api = api
@@ -137,63 +126,6 @@ final class AppModel {
         guard revision == accountRevision else { return }
         if let restored { restore(restored) }
         await scheduler?.start()
-    }
-
-    // MARK: - Updates
-
-    /// How long the app waits between automatic checks. Six hours is well under
-    /// GitHub's unauthenticated rate limit and well over what a release cadence
-    /// needs.
-    static let updateCheckInterval: TimeInterval = 6 * 60 * 60
-
-    /// The version this build reports, which is what a check compares against.
-    var currentVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
-    }
-
-    /// The last check, but only when it found something newer.
-    var availableUpdate: ReleaseCheck? {
-        guard let releaseCheck, releaseCheck.isUpdateAvailable else { return nil }
-        return releaseCheck
-    }
-
-    /// Checks now, then every ``updateCheckInterval`` for as long as the app
-    /// runs. The preference is read on every pass rather than at start, so
-    /// turning it off stops the requests without a relaunch.
-    func startUpdateWatch() {
-        guard releaseChecker != nil, updateWatch == nil else { return }
-        updateWatch = Task { [weak self] in
-            while !Task.isCancelled {
-                await self?.checkForUpdates(manual: false)
-                let interval = Self.updateCheckInterval
-                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
-            }
-        }
-    }
-
-    func stopUpdateWatch() {
-        updateWatch?.cancel()
-        updateWatch = nil
-    }
-
-    /// `manual` runs even with automatic checks off: asking explicitly is
-    /// consent, which a preference about background traffic should not veto.
-    func checkForUpdates(manual: Bool = true) async {
-        guard let releaseChecker else { return }
-        guard manual || preferences.automaticUpdateChecks else { return }
-        guard !isCheckingForUpdates else { return }
-
-        isCheckingForUpdates = true
-        defer { isCheckingForUpdates = false }
-
-        do {
-            releaseCheck = try await releaseChecker.check(currentVersion: currentVersion)
-            updateCheckFailed = false
-            log.info("release check completed update=\(self.releaseCheck?.isUpdateAvailable == true, privacy: .public)")
-        } catch {
-            updateCheckFailed = true
-            log.error("release check failed error=\(String(describing: error), privacy: .public)")
-        }
     }
 
     // MARK: - Derived state for the UI

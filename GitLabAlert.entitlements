@@ -2,13 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- The token uses the user's login Keychain. Data Protection Keychain
-         access groups require an Apple provisioning profile, which local
-         source builds intentionally do not depend on. -->
-    <key>com.apple.security.app-sandbox</key>
-    <true/>
-    <!-- Chiamate uscenti verso l'API di GitLab -->
-    <key>com.apple.security.network.client</key>
-    <true/>
+    <!-- No App Sandbox. Sparkle replaces the app in place, which a sandboxed
+         app can only do through Sparkle's two XPC services; embedding and
+         signing those in a hand-assembled bundle is more moving parts, and
+         more ways for an update to fail, than the containment buys here.
+         The app still runs under the hardened runtime, and the token still
+         uses the user's login Keychain.
+         Outside the sandbox the network entitlement means nothing, so it is
+         gone with it. -->
 </dict>
 </plist>

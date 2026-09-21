@@ -32,13 +32,11 @@ final class StatusItemController {
     var onForceRefresh: (() -> Void)?
     var onOpenDetail: (() -> Void)?
     var onOpenAbout: (() -> Void)?
-    var onOpenRelease: (() -> Void)?
+    var onCheckForUpdates: (() -> Void)?
     var onOpenSettings: (() -> Void)?
 
     private let statusItem: NSStatusItem
     private var presentation: StatusPresentation = .empty
-    /// Set when a newer release exists, which adds one item to the menu.
-    var availableUpdateVersion: String?
 
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -135,10 +133,10 @@ final class StatusItemController {
         menu.addItem(.separator())
         menu.addItem(withTitle: "About", action: #selector(menuOpenAbout), keyEquivalent: "")
             .target = self
-        if let availableUpdateVersion {
-            menu.addItem(withTitle: "Update to \(availableUpdateVersion)…", action: #selector(menuOpenRelease), keyEquivalent: "")
-                .target = self
-        }
+        // Always present, never a badge: Sparkle announces an update on its
+        // own, and this is the way to ask when you want to know now.
+        menu.addItem(withTitle: "Check for Updates…", action: #selector(menuCheckForUpdates), keyEquivalent: "")
+            .target = self
         menu.addItem(withTitle: "Settings…", action: #selector(menuOpenSettings), keyEquivalent: ",")
             .target = self
         menu.addItem(.separator())
@@ -155,7 +153,7 @@ final class StatusItemController {
     @objc private func menuRefresh() { onForceRefresh?() }
     @objc private func menuOpenDetail() { onOpenDetail?() }
     @objc private func menuOpenAbout() { onOpenAbout?() }
-    @objc private func menuOpenRelease() { onOpenRelease?() }
+    @objc private func menuCheckForUpdates() { onCheckForUpdates?() }
     @objc private func menuOpenSettings() { onOpenSettings?() }
     @objc private func menuQuit() { NSApp.terminate(nil) }
 }

@@ -9,6 +9,7 @@ import SwiftUI
 struct AboutView: View {
 
     let model: AppModel
+    let updateController: UpdateController
 
     private static let repositoryURL = URL(string: "https://github.com/AlbertoBarrago/gitlab-alert")!
     private static let authorURL = URL(string: "https://github.com/AlbertoBarrago")!
@@ -56,46 +57,20 @@ struct AboutView: View {
 
 private extension AboutView {
 
-    /// The update state, in the one place a user looks for a version number.
-    ///
-    /// "Could not check" is never rendered as "up to date": a failed check
-    /// knows nothing, and saying otherwise would keep someone on a version with
-    /// a fixed bug in it.
-    @ViewBuilder
+    /// One command, not a status line: Sparkle runs the check and reports the
+    /// outcome itself, including "you're up to date", so mirroring its state
+    /// here would be a second, slower copy of the same answer.
     var updateRow: some View {
-        if let update = model.availableUpdate {
-            Link(destination: update.releaseURL) {
-                Label("Update to \(update.latest.description)", systemImage: "arrow.down.circle")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-        } else {
-            Button {
-                Task { await model.checkForUpdates() }
-            } label: {
-                Label(updateStatusTitle, systemImage: updateStatusSymbol)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-            .disabled(model.isCheckingForUpdates)
+        Button {
+            updateController.checkForUpdates()
+        } label: {
+            Label("Check for Updates…", systemImage: "arrow.down.circle")
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
         }
-    }
-
-    var updateStatusTitle: String {
-        if model.isCheckingForUpdates { return "Checking for updates…" }
-        if model.updateCheckFailed { return "Could not check — try again" }
-        if model.releaseCheck != nil { return "Up to date" }
-        return "Check for updates"
-    }
-
-    var updateStatusSymbol: String {
-        if model.updateCheckFailed { return "exclamationmark.triangle" }
-        if model.releaseCheck != nil { return "checkmark.circle" }
-        return "arrow.clockwise"
+        .buttonStyle(.bordered)
+        .controlSize(.large)
+        .disabled(!updateController.canCheckForUpdates)
     }
 }
 

@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var preferences: Preferences!
     private var model: AppModel!
+    private var updateController: UpdateController!
     private var scheduler: PollScheduler!
     private var notifier: UserNotificationNotifier!
     private let notificationRouter = NotificationRouter()
@@ -28,6 +29,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Launch
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Before anything reads a preference: up to 0.1.7 the app was sandboxed
+        // and its defaults live in the container.
+        SandboxDefaultsMigration.runIfNeeded(log: log)
         buildGraph()
         buildInterface()
         buildMainMenu()
@@ -45,11 +49,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await notifier?.refreshAuthorizationState()
             await model?.start()
         }
-        model.startUpdateWatch()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        model.stopUpdateWatch()
         Task { [scheduler] in await scheduler?.stop() }
     }
 
@@ -76,9 +78,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             preferences: preferences,
             tokenStore: tokenStore,
             api: client,
-            apiFactory: makeClient,
-            releaseChecker: GitHubReleaseChecker(httpClient: URLSessionHTTPClient())
+            apiFactory: makeClient
         )
+
+        // Sparkle starts its own scheduler, so the app no longer runs a polling
+        // task of its own for updates.
+        updateController = UpdateController(automaticChecks: preferences.automaticUpdateChecks)
 
         let model = model!
         notifier = UserNotificationNotifier(
@@ -140,10 +145,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.onForceRefresh = { [weak self] in self?.model.refresh() }
         statusItem.onOpenDetail = { [weak self] in self?.showDetailWindow() }
         statusItem.onOpenAbout = { [weak self] in self?.showAboutWindow() }
-        statusItem.onOpenRelease = { [weak self] in
-            guard let url = self?.model.availableUpdate?.releaseURL else { return }
-            NSWorkspace.shared.open(url)
-        }
+        statusItem.onCheckForUpdates = { [weak self] in self?.updateController.checkForUpdates() }
         statusItem.onOpenSettings = { [weak self] in self?.showSettingsWindow() }
 
         model.openDetailWindow = { [weak self] in self?.showDetailWindow() }
@@ -210,7 +212,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// dismissed, and it has nothing to configure.
     private func showAboutWindow() {
         if aboutWindow == nil {
-            let controller = AboutWindowController(content: AboutView(model: model))
+            let controller = AboutWindowController(content: AboutView(model: model, updateController: updateController))
             controller.onClose = { [weak self] in self?.aboutWindow = nil }
             aboutWindow = controller
         }
@@ -269,8 +271,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             _ = model.actionableCount
             _ = model.hasUnreadActivity
             _ = model.lastError
-            _ = model.availableUpdate
             _ = preferences.statusItemVisible
+            _ = preferences.automaticUpdateChecks
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
                 self?.applyPresentation()
@@ -289,6 +291,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
         )
         statusItem.isVisible = preferences.statusItemVisible
-        statusItem.availableUpdateVersion = model.availableUpdate?.latest.description
+        // Sparkle keeps its own copy of this, so the preference is pushed in
+        // rather than read back: the toggle in Settings stays the one place it
+        // is set.
+        updateController.automaticallyChecksForUpdates = preferences.automaticUpdateChecks
     }
 }
