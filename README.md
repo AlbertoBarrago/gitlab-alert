@@ -13,7 +13,7 @@
   <a href="https://github.com/AlbertoBarrago/gitlab-alert/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/AlbertoBarrago/gitlab-alert?logo=github&label=stars"></a>
   <a href="https://www.apple.com/macos/"><img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white"></a>
   <a href="https://www.swift.org"><img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white"></a>
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
+  <a href="LICENSE"><img alt="License: MIT (modified)" src="https://img.shields.io/badge/license-MIT%20(modified)-blue"></a>
   <a href="SECURITY.md"><img alt="Security policy" src="https://img.shields.io/badge/security-policy-success?logo=github"></a>
 </p>
 
@@ -225,4 +225,4 @@ overrides that, which is how the workflow keeps the runner out of the way.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT with one added restriction: the Software may not be sold or resold, and may not be included in a paid product or service, without prior written permission. See [LICENSE](LICENSE).
