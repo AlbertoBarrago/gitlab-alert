@@ -9,6 +9,13 @@
          The app still runs under the hardened runtime, and the token still
          uses the user's login Keychain.
          Outside the sandbox the network entitlement means nothing, so it is
-         gone with it. -->
+         gone with it.
+
+         Library validation has to be off, though: under the hardened runtime it
+         requires every loaded library to carry the process's Team ID, and a
+         self-signed certificate has none. With it on, dyld refuses the embedded
+         Sparkle.framework ("different Team IDs") and the app does not launch. -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
 </dict>
 </plist>
