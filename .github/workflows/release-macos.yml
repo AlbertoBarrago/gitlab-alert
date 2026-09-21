@@ -167,6 +167,60 @@ jobs:
           } > release_notes.md
           cat release_notes.md
 
+      # Sparkle reads this feed from Info.plist's SUFeedURL, which points at
+      # releases/latest/download/appcast.xml: attaching it to the release is
+      # what publishes it, so there is no separate host to keep alive.
+      - name: Download the Sparkle tools
+        run: |
+          set -euo pipefail
+          SPARKLE_VERSION=2.10.0
+          curl -fsSL -o "$RUNNER_TEMP/sparkle.tar.xz" \
+            "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
+          mkdir -p "$RUNNER_TEMP/sparkle-tools"
+          tar -xJf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle-tools"
+
+      - name: Generate the signed appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SPARKLE_ED_PRIVATE_KEY}" ]; then
+            echo "::error::Missing secret SPARKLE_ED_PRIVATE_KEY. Existing installs would refuse the update."
+            exit 1
+          fi
+          VERSION="${{ steps.target.outputs.version }}"
+          TAG="${{ steps.target.outputs.tag }}"
+
+          # generate_appcast reads a directory of archives, so it gets the zip
+          # alone: the DMG stays the download for a first install, the zip is
+          # what Sparkle applies in place.
+          mkdir -p "$RUNNER_TEMP/appcast-work"
+          cp "dist/GitLabAlert-${VERSION}.zip" "$RUNNER_TEMP/appcast-work/"
+
+          # An HTML file whose basename matches the archive is picked up as that
+          # version's release notes.
+          {
+            echo "<h2>What's changed</h2><ul>"
+            grep '^- ' release_notes.md \
+              | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' \
+                    -e 's|^- \(.*\)$|<li>\1</li>|'
+            echo "</ul>"
+          } > "$RUNNER_TEMP/appcast-work/GitLabAlert-${VERSION}.html"
+
+          printf '%s' "${SPARKLE_ED_PRIVATE_KEY}" | "$RUNNER_TEMP/sparkle-tools/bin/generate_appcast" \
+            --ed-key-file - \
+            --download-url-prefix "https://github.com/${{ github.repository }}/releases/download/${TAG}/" \
+            --link "https://github.com/${{ github.repository }}" \
+            --embed-release-notes \
+            --maximum-versions 1 \
+            -o appcast.xml \
+            "$RUNNER_TEMP/appcast-work"
+
+          # A feed without a signature would be refused by every install, so
+          # fail here rather than publish it.
+          grep -q 'edSignature' appcast.xml
+          cat appcast.xml
+
       - name: Publish the release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -178,6 +232,7 @@ jobs:
             "dist/GitLabAlert-${VERSION}.dmg"
             "dist/GitLabAlert-${VERSION}.zip"
             "dist/SHA256SUMS.txt"
+            "appcast.xml"
           )
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "${ASSETS[@]}" --clobber
