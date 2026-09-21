@@ -42,7 +42,7 @@ struct DetailRootView: View {
             DetailInspectorView(model: model, row: selectedRow)
                 .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
         }
-        .frame(minWidth: 760, minHeight: 520)
+        .frame(minWidth: 700, minHeight: 420)
         .task(id: datasetKey) { rebuildRows() }
         .task(id: FilterKey(version: rowsVersion, filter: filter)) { applyFilter() }
         .task(id: searchQuery) { await debounceSearch() }
