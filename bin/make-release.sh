@@ -66,8 +66,11 @@ if [ "${APP_DIR}" = "/Applications" ]; then
     sleep 0.3
 fi
 
-echo "▶ Building ${BUNDLE_NAME} (release)…"
-swift build -c release
+# Universal, unlike the debug build: a release is what other people run, and an
+# arm64-only binary would leave an Intel Mac unable to take any update at all,
+# which the appcast then advertises as a hardware requirement.
+echo "▶ Building ${BUNDLE_NAME} (release, universal)…"
+swift build -c release --arch arm64 --arch x86_64
 
 if [ ! -f "${BUNDLE_NAME}.icns" ]; then
     echo "❌ Missing application icon: ${BUNDLE_NAME}.icns"
