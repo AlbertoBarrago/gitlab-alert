@@ -38,9 +38,9 @@
     <!-- Versione utente e build number. make-release.sh legge
          CFBundleShortVersionString per nominare lo zip in dist/. -->
     <key>CFBundleShortVersionString</key>
-    <string>0.1.7</string>
+    <string>0.1.8</string>
     <key>CFBundleVersion</key>
-    <string>8</string>
+    <string>9</string>
 
     <!-- Sparkle. The feed is the appcast attached to every GitHub release, so
          there is no separate host to keep alive; SUPublicEDKey is the public
