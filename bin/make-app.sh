@@ -25,15 +25,15 @@ if security find-identity -v -p codesigning 2>/dev/null | grep -q "${SIGNING_CN}
 else
     for CANDIDATE in $(security find-identity -v -p codesigning 2>/dev/null \
             | awk '/Apple Development/ { print $2 }'); do
-        MROBE=$(mktemp)
-        cp /bin/echo "${MROBE}"
-        if codesign --force --sign "${CANDIDATE}" "${MROBE}" 2>/dev/null \
-           && codesign --verify --strict "${MROBE}" 2>/dev/null; then
+        PROBE=$(mktemp)
+        cp /bin/echo "${PROBE}"
+        if codesign --force --sign "${CANDIDATE}" "${PROBE}" 2>/dev/null \
+           && codesign --verify --strict "${PROBE}" 2>/dev/null; then
             CERT="${CANDIDATE}"
-            rm -f "${MROBE}"
+            rm -f "${PROBE}"
             break
         fi
-        rm -f "${MROBE}"
+        rm -f "${PROBE}"
     done
 fi
 
