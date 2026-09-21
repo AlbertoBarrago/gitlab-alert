@@ -33,12 +33,15 @@ struct DetailRootView: View {
             sidebar
         } detail: {
             content
-                .inspector(isPresented: showsInspector) {
-                    DetailInspectorView(model: model, row: selectedRow)
-                        .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
-                }
         }
         .navigationSplitViewStyle(.balanced)
+        // Attached to the split view, not to the detail column: an inspector
+        // inside the column joins that column's layout, so showing or hiding it
+        // shifts the toolbar along with the rows.
+        .inspector(isPresented: showsInspector) {
+            DetailInspectorView(model: model, row: selectedRow)
+                .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
+        }
         .frame(minWidth: 760, minHeight: 520)
         .task(id: datasetKey) { rebuildRows() }
         .task(id: FilterKey(version: rowsVersion, filter: filter)) { applyFilter() }
