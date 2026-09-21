@@ -70,7 +70,12 @@ fi
 # arm64-only binary would leave an Intel Mac unable to take any update at all,
 # which the appcast then advertises as a hardware requirement.
 echo "▶ Building ${BUNDLE_NAME} (release, universal)…"
-swift build -c release --arch arm64 --arch x86_64
+SWIFT_BUILD_FLAGS=(-c release --arch arm64 --arch x86_64)
+swift build "${SWIFT_BUILD_FLAGS[@]}"
+# Ask SwiftPM where it put the binary instead of assuming .build/release: with
+# --arch that symlink is never created, and a machine that has one from an
+# earlier plain build hides the difference until CI fails on a clean checkout.
+BIN_PATH=$(swift build "${SWIFT_BUILD_FLAGS[@]}" --show-bin-path)
 
 if [ ! -f "${BUNDLE_NAME}.icns" ]; then
     echo "❌ Missing application icon: ${BUNDLE_NAME}.icns"
@@ -83,7 +88,7 @@ if ! diff -q "Info.plist" "${CONTENTS}/Info.plist" &>/dev/null; then
     cp "Info.plist" "${CONTENTS}/Info.plist"
 fi
 
-cp ".build/release/${BUNDLE_NAME}" "${MACOS}/${BUNDLE_NAME}"
+cp "${BIN_PATH}/${BUNDLE_NAME}" "${MACOS}/${BUNDLE_NAME}"
 cp "${BUNDLE_NAME}.icns" "${RESOURCES}/${BUNDLE_NAME}.icns"
 if [ -d "Resources" ]; then
     cp -R Resources/. "${RESOURCES}/"
