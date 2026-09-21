@@ -38,9 +38,9 @@
     <!-- Versione utente e build number. make-release.sh legge
          CFBundleShortVersionString per nominare lo zip in dist/. -->
     <key>CFBundleShortVersionString</key>
-    <string>0.1.6</string>
+    <string>0.1.7</string>
     <key>CFBundleVersion</key>
-    <string>7</string>
+    <string>8</string>
 
     <!-- Allineato a platforms: [.macOS(.v14)] in Package.swift -->
     <key>LSMinimumSystemVersion</key>
