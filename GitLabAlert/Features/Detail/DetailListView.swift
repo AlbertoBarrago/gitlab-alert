@@ -22,7 +22,7 @@ struct DetailListView: View {
 
     var body: some View {
         content
-            .frame(minWidth: 360)
+            .navigationSplitViewColumnWidth(min: 360, ideal: 560)
             .searchable(
                 text: $searchQuery,
                 placement: .toolbar,
