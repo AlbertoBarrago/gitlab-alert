@@ -66,7 +66,35 @@ struct MenuBarGlyphTests {
         let large = MenuBarGlyph.markFrame(in: NSRect(x: 0, y: 0, width: 72, height: 72))
 
         #expect(abs(small.width / small.height - large.width / large.height) < tolerance)
-        // Taller than wide, as the ears make it: a swapped axis would show here.
-        #expect(small.width < small.height)
+        // GitLab's mark is marginally wider than it is tall (its artboard is
+        // 22.64 by 22.47). Asserting the ratio, rather than just "wider than
+        // tall", is what would catch a silhouette redrawn out of proportion.
+        #expect(abs(small.width / small.height - 18.14 / 18.0) < 0.01)
+    }
+
+    /// The ears and flanks are mirror images in the original, and an
+    /// asymmetric glyph looks broken next to the system icons long before
+    /// anyone works out why.
+    @Test("the silhouette is symmetric about its vertical axis")
+    func silhouetteIsSymmetric() {
+        let path = MenuBarGlyph.markPath()
+        var points = [NSPoint](repeating: .zero, count: 3)
+        var xs: [CGFloat] = []
+        for index in 0..<path.elementCount {
+            // Every point of every element, not just the first: the eyes are
+            // ovals, so their mirrors sit in Bézier control points, and reading
+            // only points[0] would compare a control point against a vertex.
+            switch path.element(at: index, associatedPoints: &points) {
+            case .moveTo, .lineTo: xs.append(points[0].x)
+            case .curveTo: xs.append(contentsOf: points.map(\.x))
+            case .closePath: break
+            @unknown default: break
+            }
+        }
+        let axis = (path.bounds.minX + path.bounds.maxX) / 2
+        for x in xs {
+            let mirrored = 2 * axis - x
+            #expect(xs.contains { abs($0 - mirrored) < 0.02 }, "no mirror for x=\(x)")
+        }
     }
 }

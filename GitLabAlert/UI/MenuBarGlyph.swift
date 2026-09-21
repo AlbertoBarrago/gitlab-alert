@@ -108,25 +108,55 @@ enum MenuBarGlyph {
 
     /// The silhouette, in its own 18-point design space.
     ///
-    /// One path with the even-odd winding rule rather than a fill followed by
-    /// two `.clear` punches: the cheeks have to travel with the mark when it is
-    /// scaled and centred, and a single path is the only way they cannot drift
-    /// apart from it.
-    private static func markPath() -> NSBezierPath {
+    /// The proportions come from GitLab's own mark, converted from its 24-unit
+    /// artboard: the muzzle is a single point at the bottom centre, the two
+    /// ears rise to the top, and between them the central plane stops lower, at
+    /// the shoulder line. The previous path had all of this upside down — a
+    /// peak at the top, a wide base, and two oval cut-outs that read as eyes —
+    /// which is why it looked like a robot face rather than a fox.
+    ///
+    /// Monochrome at 18pt cannot carry the five shaded planes of the real logo,
+    /// so this is the outline alone. The shoulder "elbows" at the left and
+    /// right extremes are kept: they are small, but they are what makes the
+    /// profile read as the tanuki instead of a plain arrowhead. The artboard
+    /// stays a hair wider than tall, as the original is, rather than being
+    /// squared off for convenience.
+    static func markPath() -> NSBezierPath {
         let path = NSBezierPath()
-        path.move(to: NSPoint(x: 2.2, y: 14.8))
-        path.line(to: NSPoint(x: 5.3, y: 4.0))
-        path.line(to: NSPoint(x: 8.0, y: 9.2))
-        path.line(to: NSPoint(x: 9.0, y: 2.0))
-        path.line(to: NSPoint(x: 10.0, y: 9.2))
-        path.line(to: NSPoint(x: 12.7, y: 4.0))
-        path.line(to: NSPoint(x: 15.8, y: 14.8))
-        path.line(to: NSPoint(x: 9.0, y: 16.7))
+        // Muzzle, bottom centre.
+        path.move(to: NSPoint(x: 9.07, y: 0.00))
+        // Up the left flank, through the elbow, to the shoulder line.
+        path.line(to: NSPoint(x: 0.00, y: 6.96))
+        path.line(to: NSPoint(x: 0.30, y: 11.21))
+        // Left ear.
+        path.line(to: NSPoint(x: 3.21, y: 18.00))
+        path.line(to: NSPoint(x: 5.42, y: 11.21))
+        // The central plane's flat top, lower than the ears.
+        path.line(to: NSPoint(x: 12.72, y: 11.21))
+        // Right ear, mirrored.
+        path.line(to: NSPoint(x: 14.93, y: 18.00))
+        path.line(to: NSPoint(x: 17.84, y: 11.21))
+        // Down the right flank.
+        path.line(to: NSPoint(x: 18.14, y: 6.96))
         path.close()
 
-        // Small cut-outs suggest the two cheek planes of the tanuki mark.
-        path.appendOval(in: NSRect(x: 5.7, y: 10.2, width: 1.7, height: 1.2))
-        path.appendOval(in: NSRect(x: 10.6, y: 10.2, width: 1.7, height: 1.2))
+        // Two eyes, which the official mark does not have: cut out of the
+        // central plane, mirrored about the axis, and high enough on the muzzle
+        // that the taper below them still reads as a snout. Holes rather than
+        // strokes, so the template image keeps working in both menu bar
+        // appearances — hence the even-odd winding rule.
+        // Sized for the menu bar, not for the artwork: at 1.7pt the holes
+        // closed up once the 18pt canvas was scaled down into the bar, so they
+        // are wider and further apart than they would be on a large rendering.
+        let eyeDiameter: CGFloat = 2.2
+        for centreX in [9.07 - 2.15, 9.07 + 2.15] {
+            path.appendOval(in: NSRect(
+                x: centreX - eyeDiameter / 2,
+                y: 8.8 - eyeDiameter / 2,
+                width: eyeDiameter,
+                height: eyeDiameter
+            ))
+        }
         path.windingRule = .evenOdd
         return path
     }
