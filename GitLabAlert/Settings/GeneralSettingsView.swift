@@ -84,9 +84,13 @@ struct GeneralSettingsView: View {
                 }
                 .accessibilityLabel("Maximum simultaneous pipeline checks")
 
+                Toggle("Track pushes by other people", isOn: model.preferences.binding(\.trackPushEvents))
+                    .accessibilityLabel("Track pushes by other people")
+
                 SettingsFootnote(
                     "Smaller pages and lower concurrency reduce load on self-managed GitLab instances. "
-                    + "All pages are still fetched, so no repositories or work items are omitted."
+                    + "All pages are still fetched, so no repositories or work items are omitted. "
+                    + "Tracking pushes costs one extra request per watched repository on every refresh."
                 )
             }
 

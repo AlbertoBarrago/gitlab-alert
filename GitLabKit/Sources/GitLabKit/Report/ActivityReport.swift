@@ -24,6 +24,8 @@ public struct ProjectReport: Sendable, Hashable, Identifiable {
     /// Open right now, from the last snapshot.
     public var openReviews: Int
     public var openIssues: Int
+    /// Pushes by other people, from the activity log.
+    public var pushes: Int
     /// Whether the last snapshot has it red.
     public var isBroken: Bool
     public var lastFailureAt: Date?
@@ -32,7 +34,7 @@ public struct ProjectReport: Sendable, Hashable, Identifiable {
 
     /// Everything the log holds for this project, which is what "busiest"
     /// means below.
-    public var events: Int { failures + recoveries + reviewRequests + inboundItems }
+    public var events: Int { failures + recoveries + reviewRequests + inboundItems + pushes }
 
     public init(
         repository: String,
@@ -43,6 +45,7 @@ public struct ProjectReport: Sendable, Hashable, Identifiable {
         inboundItems: Int = 0,
         openReviews: Int = 0,
         openIssues: Int = 0,
+        pushes: Int = 0,
         isBroken: Bool = false,
         lastFailureAt: Date? = nil
     ) {
@@ -54,6 +57,7 @@ public struct ProjectReport: Sendable, Hashable, Identifiable {
         self.inboundItems = inboundItems
         self.openReviews = openReviews
         self.openIssues = openIssues
+        self.pushes = pushes
         self.isBroken = isBroken
         self.lastFailureAt = lastFailureAt
     }
@@ -163,6 +167,8 @@ public enum ReportEngine {
                     report.reviewRequests += 1
                 case .inboundIssue, .inboundMergeRequest:
                     report.inboundItems += 1
+                case .pushed:
+                    report.pushes += 1
                 }
             }
         }

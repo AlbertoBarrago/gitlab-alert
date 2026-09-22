@@ -10,15 +10,24 @@ public protocol TokenStore: Sendable {
 public struct RepoWatermark: Sendable, Codable, Hashable {
     public var lastCheckState: CheckState
     public var firstSeenAt: Date
+    /// Timestamp of the newest push already turned into an activity event.
+    /// Optional on purpose: a watermark written before this field existed
+    /// decodes with `nil`, which means "no push reported yet" and makes the
+    /// first cycle after an update report only pushes newer than `firstSeenAt`.
+    public var lastPushEventAt: Date?
 
-    public init(lastCheckState: CheckState = .unknown, firstSeenAt: Date) {
+    public init(lastCheckState: CheckState = .unknown, firstSeenAt: Date, lastPushEventAt: Date? = nil) {
         self.lastCheckState = lastCheckState
         self.firstSeenAt = firstSeenAt
+        self.lastPushEventAt = lastPushEventAt
     }
 
     public init(seeding repo: RepoSnapshot, at date: Date) {
-        self.init(lastCheckState: repo.checkState, firstSeenAt: date)
+        self.init(lastCheckState: repo.checkState, firstSeenAt: date, lastPushEventAt: date)
     }
+
+    /// The instant a push must beat to be reported.
+    var pushCutoff: Date { lastPushEventAt ?? firstSeenAt }
 }
 
 public struct PersistedState: Sendable, Codable, Hashable {

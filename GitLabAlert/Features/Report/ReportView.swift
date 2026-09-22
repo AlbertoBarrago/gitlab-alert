@@ -177,6 +177,7 @@ struct ReportView: View {
         if let mean = project.meanTimeToRecovery { parts.append("~\(duration(mean)) to recover") }
         if project.openReviews > 0 { parts.append("\(project.openReviews) review\(project.openReviews == 1 ? "" : "s")") }
         if project.openIssues > 0 { parts.append("\(project.openIssues) issue\(project.openIssues == 1 ? "" : "s")") }
+        if project.pushes > 0 { parts.append("\(project.pushes) push\(project.pushes == 1 ? "" : "es")") }
         return parts.isEmpty ? "Nothing recorded" : parts.joined(separator: " · ")
     }
 

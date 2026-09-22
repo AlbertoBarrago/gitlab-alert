@@ -68,6 +68,7 @@ public final class Preferences {
         static let batteryPollInterval = "poll.batteryInterval"
         static let apiPageSize = "api.pageSize"
         static let pipelineConcurrency = "api.pipelineConcurrency"
+        static let trackPushEvents = "api.trackPushEvents"
         static let showProfileHeader = "ui.showProfileHeader"
         static let sectionOrder = "ui.sectionOrder"
         static let visibleSections = "ui.visibleSections"
@@ -90,6 +91,7 @@ public final class Preferences {
     private var storedBatteryPollInterval: TimeInterval
     private var storedAPIPageSize: Int
     private var storedPipelineConcurrency: Int
+    private var storedTrackPushEvents: Bool
     private var storedShowProfileHeader: Bool
     private var storedSectionOrder: [DashboardSection]
     private var storedVisibleSections: Set<DashboardSection>
@@ -117,6 +119,7 @@ public final class Preferences {
         storedPipelineConcurrency = Preferences.clampPipelineConcurrency(
             defaults.object(forKey: Key.pipelineConcurrency) as? Int ?? DashboardRequestOptions.defaultPipelineConcurrency
         )
+        storedTrackPushEvents = defaults.object(forKey: Key.trackPushEvents) as? Bool ?? true
         storedShowProfileHeader = defaults.object(forKey: Key.showProfileHeader) as? Bool ?? true
         storedAutomaticUpdateChecks = defaults.object(forKey: Key.automaticUpdateChecks) as? Bool ?? true
         storedStatusItemVisible = defaults.object(forKey: Key.statusItemVisible) as? Bool ?? true
@@ -219,8 +222,23 @@ public final class Preferences {
         }
     }
 
+    /// Off means one fewer request per watched repository per cycle. Worth
+    /// exposing: on an account watching many projects the events feed is the
+    /// most expensive part of a poll.
+    public var trackPushEvents: Bool {
+        get { storedTrackPushEvents }
+        set {
+            storedTrackPushEvents = newValue
+            defaults.set(newValue, forKey: Key.trackPushEvents)
+        }
+    }
+
     public var dashboardRequestOptions: DashboardRequestOptions {
-        DashboardRequestOptions(pageSize: apiPageSize, pipelineConcurrency: pipelineConcurrency)
+        DashboardRequestOptions(
+            pageSize: apiPageSize,
+            pipelineConcurrency: pipelineConcurrency,
+            includePushEvents: trackPushEvents
+        )
     }
 
     public static func clampAPIPageSize(_ value: Int) -> Int {
@@ -305,9 +323,9 @@ public final class Preferences {
 
     // MARK: - Notifications
 
-    /// Per-kind mute switches. Unknown keys in the stored map are dropped and
-    /// missing kinds default to enabled, so adding an ``ActivityKind`` later
-    /// does not require a migration.
+    /// Per-kind mute switches. Unknown keys in the stored map are dropped and a
+    /// missing kind falls back to ``ActivityKind/notifiesByDefault``, so adding
+    /// an ``ActivityKind`` later does not require a migration.
     public var notificationsByKind: [ActivityKind: Bool] {
         get { storedNotificationsByKind }
         set {
@@ -323,7 +341,7 @@ public final class Preferences {
     }
 
     public func isNotificationEnabled(_ kind: ActivityKind) -> Bool {
-        storedNotificationsByKind[kind] ?? true
+        storedNotificationsByKind[kind] ?? kind.notifiesByDefault
     }
 
     public func setNotificationEnabled(_ enabled: Bool, for kind: ActivityKind) {
@@ -399,6 +417,7 @@ public final class Preferences {
         batteryPollInterval = PollScheduler.defaultBatteryInterval
         apiPageSize = DashboardRequestOptions.defaultPageSize
         pipelineConcurrency = DashboardRequestOptions.defaultPipelineConcurrency
+        trackPushEvents = true
         showProfileHeader = true
         automaticUpdateChecks = true
         statusItemVisible = true

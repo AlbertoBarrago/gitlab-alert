@@ -143,7 +143,14 @@ struct ActivityRowView: View {
             return Text("New issue on ") + repo
         case .inboundMergeRequest:
             return Text("New merge request on ") + repo
+        case .pushed:
+            return Text("\(commitPhrase) pushed to ") + repo
         }
+    }
+
+    /// "1 commit" or "4 commits": `delta` is the push's commit count.
+    private var commitPhrase: String {
+        event.delta == 1 ? "1 commit" : "\(event.delta) commits"
     }
 
     private var shortRepository: String {
@@ -176,6 +183,8 @@ struct ActivityRowView: View {
             return "New issue on \(shortRepository)"
         case .inboundMergeRequest:
             return "New merge request on \(shortRepository)"
+        case .pushed:
+            return "\(commitPhrase) pushed to \(shortRepository)"
         }
     }
 }
@@ -190,6 +199,7 @@ private extension ActivityKind {
         case .reviewRequested: return "eyeglasses"
         case .inboundIssue: return "exclamationmark.bubble.fill"
         case .inboundMergeRequest: return "arrow.triangle.pull"
+        case .pushed: return "arrow.up"
         }
     }
 
@@ -200,6 +210,7 @@ private extension ActivityKind {
         case .reviewRequested: return .blue
         case .inboundIssue: return .orange
         case .inboundMergeRequest: return .teal
+        case .pushed: return .purple
         }
     }
 }

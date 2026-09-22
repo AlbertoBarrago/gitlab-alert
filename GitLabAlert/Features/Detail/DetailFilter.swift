@@ -243,6 +243,7 @@ enum DetailLabels {
         case .reviewRequested: return "Review requested"
         case .inboundIssue: return "New issue"
         case .inboundMergeRequest: return "New merge request"
+        case .pushed: return "Push"
         }
     }
 
@@ -254,6 +255,7 @@ enum DetailLabels {
         case .reviewRequested: return "eyeglasses"
         case .inboundIssue: return "tray.and.arrow.down.fill"
         case .inboundMergeRequest: return "arrow.triangle.branch"
+        case .pushed: return "arrow.up.circle.fill"
         }
     }
 
@@ -636,7 +638,9 @@ extension DetailRow {
 
     init(event: ActivityEvent, isUnread: Bool) {
         let actorList = event.actors.map(\.login).joined(separator: ", ")
-        let headline = event.title ?? Self.headline(for: event)
+        // A push carries the ref in `title`, which is not a headline on its
+        // own, so the sentence is composed instead of quoted.
+        let headline = event.kind == .pushed ? Self.headline(for: event) : (event.title ?? Self.headline(for: event))
         self.init(
             id: event.id,
             kind: .activity,
@@ -668,6 +672,9 @@ extension DetailRow {
             return "New issue"
         case .inboundMergeRequest:
             return "New merge request"
+        case .pushed:
+            let commits = event.delta == 1 ? "1 commit" : "\(event.delta) commits"
+            return event.title.map { "\(commits) pushed to \($0)" } ?? "\(commits) pushed"
         }
     }
 

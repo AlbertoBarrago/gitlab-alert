@@ -146,3 +146,29 @@ public struct RepoSnapshot: Sendable, Codable, Hashable, Identifiable {
         self.url = url
     }
 }
+
+/// One `action=pushed` entry from GitLab's project events feed.
+///
+/// Unlike every other item in a snapshot this is not a piece of open work: it
+/// is an event GitLab already timestamped, so the diff engine compares it
+/// against a watermark instead of against the previous snapshot.
+public struct PushEvent: Sendable, Codable, Hashable, Identifiable {
+    public var id: String
+    public var repository: String
+    public var actor: GLActor
+    /// Branch or tag name, without the `refs/heads/` prefix GitLab omits here.
+    public var ref: String?
+    public var commitCount: Int
+    public var occurredAt: Date
+    public var url: URL?
+
+    public init(id: String, repository: String, actor: GLActor, ref: String? = nil, commitCount: Int = 1, occurredAt: Date, url: URL? = nil) {
+        self.id = id
+        self.repository = repository
+        self.actor = actor
+        self.ref = ref
+        self.commitCount = commitCount
+        self.occurredAt = occurredAt
+        self.url = url
+    }
+}

@@ -25,6 +25,7 @@ only, with no Dock icon, and shows you:
 - **Open issues**: issues assigned to you
 - **Pipeline state**: the latest pipeline of the GitLab projects you watch
 - **Repository activity**: your projects, including star and fork counts when GitLab provides them
+- **Pushes by your teammates**: new commits pushed to the projects you watch, silent by default and one toggle away from notifying
 
 GitLab Alert works with GitLab.com and self-managed GitLab instances. It polls
 in the background, retains the last successful dashboard while offline, and

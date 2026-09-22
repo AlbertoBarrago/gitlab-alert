@@ -175,6 +175,8 @@ actor UserNotificationNotifier: Notifying {
             return "New issue on \(repo)"
         case .inboundMergeRequest:
             return "New merge request on \(repo)"
+        case .pushed:
+            return "New commits on \(repo)"
         }
     }
 
@@ -190,6 +192,12 @@ actor UserNotificationNotifier: Notifying {
                 return names.isEmpty ? title : "\(title) by \(names[0])"
             }
             return event.repository
+        case .pushed:
+            // `title` is the ref and `delta` the commit count, so the sentence
+            // is built rather than quoted.
+            let commits = event.delta == 1 ? "1 commit" : "\(event.delta) commits"
+            let branch = event.title.map { " to \($0)" } ?? ""
+            return names.isEmpty ? "\(commits)\(branch)" : "\(commits)\(branch) by \(names[0])"
         }
     }
 

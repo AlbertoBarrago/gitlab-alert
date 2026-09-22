@@ -45,7 +45,13 @@ public struct GitLabClient: GitLabAPI {
         let assigned = try await assignedMergeRequests
         let mine = try await authored
         let issues = try await assignedIssues
-        let repositories = try await projects
+        let (repositories, projectIdentities) = try await projects
+
+        // Sequenced after the projects, not alongside them: which repositories
+        // are watched is what decides whose events are worth asking for.
+        let pushes = options.includePushEvents
+            ? try await fetchPushEvents(projects: projectIdentities, excluding: username, options: options)
+            : []
 
         return DashboardSnapshot(
             fetchedAt: clock(),
@@ -54,6 +60,7 @@ public struct GitLabClient: GitLabAPI {
             authoredMergeRequests: merge(mine, relevance: .authored),
             assignedIssues: issues,
             repositories: repositories,
+            pushEvents: pushes,
             rateLimit: await rateLimits.status
         )
     }
@@ -83,8 +90,19 @@ public struct GitLabClient: GitLabAPI {
         return payload.map(\.model)
     }
 
-    private func fetchProjects(scope: RepositoryScope, options: DashboardRequestOptions) async throws -> [RepoSnapshot] {
-        guard scope.includeOwned else { return [] }
+    /// Identifies one watched project for the follow-up requests that need
+    /// GitLab's numeric id, which `RepoSnapshot` deliberately does not carry.
+    private struct ProjectIdentity: Sendable {
+        let id: Int
+        let nameWithOwner: String
+        let url: URL?
+    }
+
+    private func fetchProjects(
+        scope: RepositoryScope,
+        options: DashboardRequestOptions
+    ) async throws -> ([RepoSnapshot], [ProjectIdentity]) {
+        guard scope.includeOwned else { return ([], []) }
         let payload: [ProjectPayload] = try await getAllPages(
             "projects",
             // Not `simple=true`: the compact representation omits `star_count`
@@ -110,9 +128,73 @@ public struct GitLabClient: GitLabAPI {
                     group.addTask { try await project.snapshot(pipelineState: self.fetchLatestPipeline(projectID: project.id)) }
                 }
             }
-            return snapshots.sorted { $0.nameWithOwner.localizedCaseInsensitiveCompare($1.nameWithOwner) == .orderedAscending }
+            let sorted = snapshots.sorted { $0.nameWithOwner.localizedCaseInsensitiveCompare($1.nameWithOwner) == .orderedAscending }
+            let identities = projects.map { ProjectIdentity(id: $0.id, nameWithOwner: $0.pathWithNamespace, url: $0.webURL) }
+            return (sorted, identities)
         }
     }
+
+    /// Other people's pushes to the watched projects.
+    ///
+    /// One request per project, bounded by the same concurrency as the pipeline
+    /// fetch. A project whose events cannot be read (the token's role on it may
+    /// be below Reporter) contributes nothing rather than failing the whole
+    /// cycle: losing one repository's pushes must not cost the user their
+    /// merge requests too.
+    private func fetchPushEvents(
+        projects: [ProjectIdentity],
+        excluding username: String,
+        options: DashboardRequestOptions
+    ) async throws -> [PushEvent] {
+        guard !projects.isEmpty else { return [] }
+        let after = clock().addingTimeInterval(-Double(DashboardRequestOptions.pushEventLookbackDays) * 86_400)
+
+        return try await withThrowingTaskGroup(of: [PushEvent].self) { group in
+            var iterator = projects.makeIterator()
+            for _ in 0..<min(options.pipelineConcurrency, projects.count) {
+                guard let project = iterator.next() else { break }
+                group.addTask { await self.pushEvents(for: project, after: after, excluding: username) }
+            }
+            var events: [PushEvent] = []
+            while let batch = try await group.next() {
+                events.append(contentsOf: batch)
+                if let project = iterator.next() {
+                    group.addTask { await self.pushEvents(for: project, after: after, excluding: username) }
+                }
+            }
+            return events.sorted { $0.occurredAt > $1.occurredAt }
+        }
+    }
+
+    private func pushEvents(for project: ProjectIdentity, after: Date, excluding username: String) async -> [PushEvent] {
+        do {
+            let payload: [EventPayload] = try await get(
+                "projects/\(project.id)/events",
+                query: [
+                    "action": "pushed",
+                    "after": Self.eventDateFormatter.string(from: after),
+                    "per_page": "20",
+                    "sort": "desc",
+                ]
+            )
+            return payload.compactMap { $0.pushModel(repository: project.nameWithOwner, projectURL: project.url) }
+                .filter { $0.actor.login != username }
+        } catch {
+            logger.info("Skipped push events for \(project.nameWithOwner, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    /// GitLab's `after` filter on the events endpoint takes a plain date, and
+    /// treats it as exclusive.
+    private static let eventDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
 
     private func fetchLatestPipeline(projectID: Int) async throws -> CheckState {
         let pipelines: [PipelinePayload] = try await get("projects/\(projectID)/pipelines", query: ["per_page": "1", "order_by": "updated_at", "sort": "desc"])
@@ -327,6 +409,41 @@ private struct ProjectPayload: Decodable {
 }
 
 private struct PipelinePayload: Decodable { let status: String }
+
+/// One entry of GitLab's events feed, narrowed to what a push needs.
+private struct EventPayload: Decodable {
+    let id: Int
+    let actionName: String?
+    let createdAt: Date
+    let author: ActorPayload?
+    let pushData: PushData?
+
+    enum CodingKeys: String, CodingKey { case id, author; case actionName = "action_name"; case createdAt = "created_at"; case pushData = "push_data" }
+
+    struct PushData: Decodable {
+        let commitCount: Int?
+        let ref: String?
+        enum CodingKeys: String, CodingKey { case ref; case commitCount = "commit_count" }
+    }
+
+    /// `nil` for anything that is not a push with a known author: the endpoint
+    /// is filtered by `action=pushed`, but a self-managed instance can still
+    /// return entries we cannot attribute, and an unattributed push row would
+    /// say nothing useful.
+    func pushModel(repository: String, projectURL: URL?) -> PushEvent? {
+        guard let author, pushData != nil || actionName == "pushed to" || actionName == "pushed new" else { return nil }
+        let ref = pushData?.ref
+        return PushEvent(
+            id: String(id),
+            repository: repository,
+            actor: author.model,
+            ref: ref,
+            commitCount: pushData?.commitCount ?? 1,
+            occurredAt: createdAt,
+            url: ref.flatMap { branch in projectURL?.appending(path: "/-/commits/\(branch)") } ?? projectURL
+        )
+    }
+}
 
 private extension RateLimitTracker {
     func note(error: GitLabError, now: Date) {

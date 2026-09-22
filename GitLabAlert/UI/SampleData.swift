@@ -238,6 +238,16 @@ enum SampleData {
             url: url("https://gitlab.com/alBz/telemaco/issues/500")
         ),
         ActivityEvent(
+            id: "E_pushed",
+            kind: .pushed,
+            occurredAt: now.addingTimeInterval(-42_000),
+            repository: "alBz/telemaco",
+            delta: 4,
+            actors: [actors[0]],
+            title: "main",
+            url: url("https://gitlab.com/alBz/telemaco/-/commits/main")
+        ),
+        ActivityEvent(
             id: "E_checks_recovered",
             kind: .checksRecovered,
             occurredAt: now.addingTimeInterval(-96_000),

@@ -23,11 +23,25 @@ public struct ActivityDiffEngine: ActivityDiffing {
                 events.append(event)
             }
             watermark.lastCheckState = repository.checkState
+
+            let pushes = pushEvents(for: repository.nameWithOwner, in: current, after: watermark.pushCutoff)
+            events.append(contentsOf: pushes.map(ActivityEvent.init(push:)))
+            if let newest = pushes.map(\.occurredAt).max() {
+                watermark.lastPushEventAt = newest
+            }
+
             watermarks[repository.nameWithOwner] = watermark
         }
 
         events.append(contentsOf: workItemEvents(previous: previous, current: current, newlySeeded: newlySeeded, at: input.now))
         return DiffResult(events: events.sorted { $0.occurredAt > $1.occurredAt }, watermarks: watermarks)
+    }
+
+    /// Pushes are not diffed against the previous snapshot: GitLab already
+    /// timestamped them, so the watermark is the only thing that decides what
+    /// is new. The client has already dropped the user's own pushes.
+    private func pushEvents(for repository: String, in snapshot: DashboardSnapshot, after cutoff: Date) -> [PushEvent] {
+        snapshot.pushEvents.filter { $0.repository == repository && $0.occurredAt > cutoff }
     }
 
     private func seeded(_ repositories: [RepoSnapshot], at date: Date) -> [String: RepoWatermark] {

@@ -42,15 +42,25 @@ public struct DashboardRequestOptions: Sendable, Hashable {
     public static let defaultPageSize = 25
     public static let defaultPipelineConcurrency = 6
 
+    /// How far back a cycle looks for pushes by other people. One day is well
+    /// past any realistic poll interval, so nothing is missed, and it keeps the
+    /// events request cheap on a repository with heavy traffic.
+    public static let pushEventLookbackDays = 1
+
     public var pageSize: Int
     public var pipelineConcurrency: Int
+    /// Whether to fetch other people's pushes. One extra request per watched
+    /// repository per cycle, so it is a preference rather than a constant.
+    public var includePushEvents: Bool
 
     public init(
         pageSize: Int = DashboardRequestOptions.defaultPageSize,
-        pipelineConcurrency: Int = DashboardRequestOptions.defaultPipelineConcurrency
+        pipelineConcurrency: Int = DashboardRequestOptions.defaultPipelineConcurrency,
+        includePushEvents: Bool = true
     ) {
         self.pageSize = min(max(pageSize, 25), 100)
         self.pipelineConcurrency = min(max(pipelineConcurrency, 1), 8)
+        self.includePushEvents = includePushEvents
     }
 }
 

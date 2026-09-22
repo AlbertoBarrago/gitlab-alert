@@ -80,6 +80,7 @@ struct NotificationSettingsView: View {
         case .checksRecovered: return "CI goes back to green"
         case .inboundIssue: return "New issues on my repositories"
         case .inboundMergeRequest: return "New merge requests on my repositories"
+        case .pushed: return "Pushes by other people"
         }
     }
 
@@ -91,6 +92,7 @@ struct NotificationSettingsView: View {
         case .checksRecovered: return "checkmark.seal"
         case .inboundIssue: return "tray.and.arrow.down"
         case .inboundMergeRequest: return "arrow.triangle.pull"
+        case .pushed: return "arrow.up.circle"
         }
     }
 }
