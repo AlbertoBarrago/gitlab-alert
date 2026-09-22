@@ -42,7 +42,12 @@ struct DetailRootView: View {
             DetailInspectorView(model: model, row: selectedRow)
                 .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
         }
-        .frame(minWidth: 700, minHeight: 420)
+        // Wide enough for the columns that are actually on screen: sidebar
+        // (220) plus table (360) plus, when it is open, the inspector (260).
+        // Without the second number the window can be narrower than its own
+        // columns, and the table keeps its minimum by sliding under the
+        // inspector.
+        .frame(minWidth: showsInspector.wrappedValue ? 860 : 700, minHeight: 420)
         .task(id: datasetKey) { rebuildRows() }
         .task(id: FilterKey(version: rowsVersion, filter: filter)) { applyFilter() }
         .task(id: searchQuery) { await debounceSearch() }

@@ -1,7 +1,12 @@
 import GitLabKit
 import SwiftUI
 
-/// The detail window's third column: everything about the selected row.
+/// The detail window's inspector: everything about the selected row.
+///
+/// It carries no width of its own. It is presented by `.inspector`, not as a
+/// `NavigationSplitView` column, and a `navigationSplitViewColumnWidth` here
+/// travels up to the detail column instead and squeezes the table. The width
+/// belongs to the `.inspectorColumnWidth` on the presenting view.
 ///
 /// The table trades completeness for density; this is where the full title, the
 /// whole label set and every timestamp live. Text is selectable because the
@@ -22,7 +27,6 @@ struct DetailInspectorView: View {
                 )
             }
         }
-        .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 420)
     }
 
     private func inspector(_ row: DetailRow) -> some View {
