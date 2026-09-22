@@ -1,8 +1,7 @@
 import GitLabKit
 import SwiftUI
 
-/// The bottom strip: how fresh the data is, and the two things the user can do
-/// about it.
+/// The bottom strip: how fresh the data is, and what the user can do about it.
 struct PopoverFooterView: View {
 
     let model: AppModel
@@ -22,6 +21,19 @@ struct PopoverFooterView: View {
                 freshness
 
                 Spacer(minLength: 8)
+
+                // Only while there is something to acknowledge: the popover
+                // lists five rows per section, so ticking off what is on screen
+                // does not necessarily clear the unread dot, and this is the
+                // one control that always does.
+                if model.hasUnreadActivity {
+                    IconButton(
+                        systemImage: "checkmark.circle",
+                        label: "Mark All as Seen",
+                        shortcutHint: "\u{21E7}\u{2318}K",
+                        action: { model.markAllActivitySeen() }
+                    )
+                }
 
                 IconButton(
                     systemImage: "arrow.clockwise",

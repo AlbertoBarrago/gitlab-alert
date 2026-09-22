@@ -213,6 +213,13 @@ final class AppModel {
         Task { [weak self] in await self?.scheduler?.markEventsSeen(Array(seen)) }
     }
 
+    /// Acknowledges the whole activity log, not the handful of rows a surface
+    /// happens to show. The popover lists five events per section, so without
+    /// this the unread dot survives ticking off everything on screen.
+    func markAllActivitySeen() {
+        markActivitySeen(unreadEventIDs)
+    }
+
     func markRepositoryAlertsSeen(_ repositories: [RepoSnapshot]) {
         let ids = Set(repositories.filter { $0.checkState.isBroken }.map(\.repositoryAlertID))
             .subtracting(seenRepositoryAlertIDs)

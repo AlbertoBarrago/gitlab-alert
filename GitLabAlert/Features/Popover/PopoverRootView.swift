@@ -225,6 +225,11 @@ struct PopoverRootView: View {
             toggle: { toggle(section) }
         )
         .id(section.id)
+        .contextMenu {
+            if section == .activity && model.hasUnreadActivity {
+                Button("Mark All as Seen") { model.markAllActivitySeen() }
+            }
+        }
 
         if isExpanded {
             if count == 0 {
@@ -404,6 +409,12 @@ struct PopoverRootView: View {
                 return .handled
             case ",":
                 model.openSettings()
+                return .handled
+            // Shift is not tested: the character arrives as "k" or "K"
+            // depending on the layout, and both mean the same request.
+            case "k", "K":
+                guard press.modifiers.contains(.shift) else { return .ignored }
+                model.markAllActivitySeen()
                 return .handled
             default:
                 return .ignored

@@ -404,3 +404,37 @@ struct LifecycleTests {
         #expect(app.pendingSelection == nil)
     }
 }
+
+// MARK: - Acknowledging activity
+
+@MainActor
+@Suite("Marking activity seen")
+struct MarkActivitySeenTests {
+
+    @Test("marking all as seen clears the unread dot, not just what a surface shows")
+    func markAllClearsEveryUnreadEvent() {
+        let app = model(api: ControlledAPI(), store: MemoryStore())
+        let events = (1...8).map { index in
+            ActivityEvent(
+                id: "push|\(index)",
+                kind: .pushed,
+                occurredAt: Date(timeIntervalSince1970: 1_700_000_000 + Double(index)),
+                repository: "team/service",
+                delta: 2,
+                actors: [GLActor(login: "carla")],
+                title: "main"
+            )
+        }
+        app.apply(PollOutcome(snapshot: snapshot(), freshEvents: events, activityLog: events, rateLimit: nil))
+        #expect(app.unreadEventIDs.count == 8)
+
+        // Only what the popover can reach: five rows out of eight.
+        app.markActivitySeen(Set(events.prefix(5).map(\.id)))
+        #expect(app.unreadEventIDs.count == 3)
+        #expect(app.hasUnreadActivity)
+
+        app.markAllActivitySeen()
+        #expect(app.unreadEventIDs.isEmpty)
+        #expect(!app.hasUnreadActivity)
+    }
+}
